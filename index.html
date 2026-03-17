@@ -124,11 +124,11 @@
 </div>
 
 <div id="gps-wait">
-  <div class="t">Разрешения для AR</div>
-  <div class="s">Нажми кнопку — браузер запросит <b>камеру</b> и <b>геолокацию</b>. После обоих разрешений появится кнопка Старт.</div>
-  <button type="button" id="btn-request-geo" class="geo-btn">Разрешить камеру и геолокацию</button>
+  <div class="t">Нужна геолокация</div>
+  <div class="s">Нажми кнопку — запросится доступ к местоположению. Камеру запросит сцена при Старте. Когда будет готово — появится кнопка Старт.</div>
+  <button type="button" id="btn-request-geo" class="geo-btn">Разрешить геолокацию</button>
   <div id="ready-block" style="display:none;">
-    <div class="s">Камера и геолокация включены. Нажми Старт — начнётся таймер и игра.</div>
+    <div class="s">Нажми Старт — запросится камера и начнётся игра.</div>
     <button type="button" id="btn-start-game" class="geo-btn start-btn">Старт</button>
   </div>
 </div>
@@ -241,7 +241,7 @@ function spawnIngredient(isBad){
   var el = document.createElement('a-entity');
   el.setAttribute('position', '0 2 0');
   el.setAttribute('class', 'clickable');
-  el.setAttribute('scale', '0.4 0.4 0.4');
+  el.setAttribute('scale', '0.8 0.8 0.8');
 
   var pool = isBad ? BAD_MODELS : GOOD_MODELS;
   var modelId = pool[Math.floor(Math.random() * pool.length)];
@@ -347,6 +347,11 @@ function setCoords(lat, lon, demo){
   if (!gameStarted && cameraReady) showStartButton();
 }
 
+window.addEventListener('arjs-source-ready', function(){
+  cameraReady = true;
+  if (userLat != null && userLon != null) showStartButton();
+});
+
 function useFallback(){
   if (userLat && userLon) return;
   infoEl.textContent = 'Не получилось получить местоположение — запускаю демо-режим.';
@@ -373,38 +378,17 @@ function showStartButton(){
 }
 
 function startWatchingGeo(){
+  if (!navigator.geolocation){ useFallback(); return; }
   var btn = document.getElementById('btn-request-geo');
   if (btn) btn.style.display = 'none';
-  document.querySelector('#gps-wait .t').textContent = 'Запрашиваем камеру…';
-  document.querySelector('#gps-wait .s').textContent = 'Разреши доступ к камере.';
+  document.querySelector('#gps-wait .t').textContent = 'Ищем тебя на карте…';
+  document.querySelector('#gps-wait .s').textContent = 'Разреши доступ к местоположению.';
 
-  function onCameraOk(){
-    cameraReady = true;
-    document.querySelector('#gps-wait .t').textContent = 'Ищем тебя на карте…';
-    document.querySelector('#gps-wait .s').textContent = 'Разреши доступ к местоположению.';
-    if (userLat != null && userLon != null) { showStartButton(); return; }
-    if (!navigator.geolocation){ useFallback(); return; }
-    navigator.geolocation.watchPosition(
-      function(pos){ setCoords(pos.coords.latitude, pos.coords.longitude, false); },
-      function(){ useFallback(); },
-      {enableHighAccuracy: true, timeout: 10000, maximumAge: 0}
-    );
-  }
-
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-    cameraReady = true;
-    document.querySelector('#gps-wait .s').textContent = 'Камера не поддерживается, запрашиваю геолокацию…';
-    if (!navigator.geolocation){ useFallback(); return; }
-    navigator.geolocation.watchPosition(
-      function(pos){ setCoords(pos.coords.latitude, pos.coords.longitude, false); },
-      function(){ useFallback(); },
-      {enableHighAccuracy: true, timeout: 10000, maximumAge: 0}
-    );
-    return;
-  }
-  navigator.mediaDevices.getUserMedia({ video: true })
-    .then(function(stream){ stream.getTracks().forEach(function(t){ t.stop(); }); onCameraOk(); })
-    .catch(function(){ document.querySelector('#gps-wait .s').textContent = 'Камера отклонена. Запрашиваю геолокацию…'; cameraReady = true; onCameraOk(); });
+  navigator.geolocation.watchPosition(
+    function(pos){ setCoords(pos.coords.latitude, pos.coords.longitude, false); },
+    function(){ useFallback(); },
+    {enableHighAccuracy: true, timeout: 10000, maximumAge: 0}
+  );
 }
 
 var btnStartGame = document.getElementById('btn-start-game');
@@ -429,6 +413,8 @@ setTimeout(function(){
 }, 12000);
 
 sceneEl.addEventListener('loaded', function(){
+  cameraReady = true;
+  if (userLat != null && userLon != null) showStartButton();
   var canvas  = this.canvas;
   var scene3d = this.object3D;
   var raycaster   = new THREE.Raycaster();
