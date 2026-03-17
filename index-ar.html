@@ -232,12 +232,12 @@
         style="position:fixed; inset:0; z-index:1; background: transparent;">
 
         <a-assets timeout="25000">
-            <a-asset-item id="cheeseModel" src="pizza models/cheese.glb"></a-asset-item>
-            <a-asset-item id="pizzaBoxModel" src="pizza models/pizza box.glb"></a-asset-item>
-            <a-asset-item id="tomatoModel" src="pizza models/tomato.glb"></a-asset-item>
-            <a-asset-item id="garlicModel" src="pizza models/garlic.glb"></a-asset-item>
-            <a-asset-item id="cabbageModel" src="pizza models/cabbage.glb"></a-asset-item>
-            <a-asset-item id="pumpkinModel" src="pizza models/pumpkin.glb"></a-asset-item>
+            <a-asset-item id="cheeseModel" src="pizza%20models/cheese.glb"></a-asset-item>
+            <a-asset-item id="pizzaBoxModel" src="pizza%20models/pizza%20box.glb"></a-asset-item>
+            <a-asset-item id="tomatoModel" src="pizza%20models/tomato.glb"></a-asset-item>
+            <a-asset-item id="garlicModel" src="pizza%20models/garlic.glb"></a-asset-item>
+            <a-asset-item id="cabbageModel" src="pizza%20models/cabbage.glb"></a-asset-item>
+            <a-asset-item id="pumpkinModel" src="pizza%20models/pumpkin.glb"></a-asset-item>
         </a-assets>
 
         <a-camera
@@ -273,7 +273,7 @@
             var loadingCount = document.getElementById('loadingCount');
             var loadingPct = document.getElementById('loadingPct');
             var loadingError = document.getElementById('loadingError');
-            var assetsEl = document.querySelector('a-assets');
+            var sceneEl = document.querySelector('a-scene');
 
             var collected = 0;
             var timeLeft = 35;
@@ -697,6 +697,7 @@
                 assetsReady = false;
                 if (loadingBanner) loadingBanner.style.display = 'flex';
 
+                var assetsEl = document.querySelector('a-scene a-assets') || document.querySelector('a-assets');
                 var items = assetsEl ? Array.prototype.slice.call(assetsEl.querySelectorAll('a-asset-item')) : [];
                 var total = items.length;
                 var loaded = 0;
@@ -769,7 +770,11 @@
                 });
             }
 
-            beginAssetLoadingGate();
+            if (sceneEl && !sceneEl.hasLoaded) {
+                sceneEl.addEventListener('loaded', beginAssetLoadingGate, { once: true });
+            } else {
+                beginAssetLoadingGate();
+            }
             startCamera();
             startGps();
             updateHud();
