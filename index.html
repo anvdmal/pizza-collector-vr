@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
   <title>Pizza Hunt AR</title>
-  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/aframe-look-at-component@1.0.0/dist/aframe-look-at-component.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.3.2/aframe/build/aframe-ar.js"></script>
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <script src="https://unpkg.com/aframe-look-at-component@1.0.0/dist/aframe-look-at-component.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
   <link rel="stylesheet" href="./style.css">
   <style>
     :root{
@@ -162,7 +162,6 @@ var spawnGood = null;
 var spawnBad  = null;
 var gameOver  = false;
 var gameStarted = false;
-var sceneLoaded = false;
 
 // модели: хорошие и фейковые (опасные)
 var GOOD_MODELS = ['#cheeseModel', '#pizzaBoxModel', '#tomatoModel'];
@@ -191,10 +190,6 @@ function updateHud(){
   timerEl.textContent = timeLeft;
 }
 
-function tryStartGame(){
-  if (gameStarted || gameOver || userLat == null || userLon == null || !sceneLoaded) return;
-  startGame();
-}
 
 function finishGame(win, reason){
   if (gameOver) return;
@@ -219,9 +214,8 @@ function finishGame(win, reason){
 
 var spawnAngle = 0;
 function rndOffset(){
-  // крутимся вокруг игрока по кругу, держим в радиусе ~4–7 метров
-  spawnAngle += 0.9 + Math.random()*0.6;
-  var dist = (4 + Math.random()*3) / 111000;
+  spawnAngle += 1.2 + Math.random() * 0.8;
+  var dist = (3 + Math.random()*5) / 111000;
   return { lat: Math.cos(spawnAngle)*dist, lon: Math.sin(spawnAngle)*dist };
 }
 
@@ -270,15 +264,15 @@ function spawnIngredient(isBad){
   });
 
   sceneEl.appendChild(el);
-  el.setAttribute('gps-entity-place','latitude:'+lat+'; longitude:'+lon+';');
-  if (el.components['gps-entity-place'] && el.components['gps-entity-place']._updatePosition){
+  el.setAttribute('gps-entity-place', 'latitude: '+lat+'; longitude: '+lon+';');
+  if (el.components['gps-entity-place'] && el.components['gps-entity-place']._updatePosition) {
     el.components['gps-entity-place']._updatePosition();
   }
   setTimeout(function(){ if(!handled && el.parentNode) el.remove(); }, isBad ? 12000 : 9000);
 }
 
 function startGame(){
-  if (gameStarted || gameOver || !userLat || !userLon || !sceneLoaded) return;
+  if (gameStarted) return;
   gameStarted = true;
   gpsWait.style.display = 'none';
   infoEl.textContent = 'Статус: игра началась';
@@ -286,28 +280,20 @@ function startGame(){
   timeLeft  = 30;
   updateHud();
 
-  // таймер обратного отсчёта — запускаем сразу
+  spawnIngredient(false);
+  spawnGood = setInterval(function(){ if (!gameOver) spawnIngredient(false); }, 3000);
+  spawnBad = setInterval(function(){ if (!gameOver) spawnIngredient(true); }, 5000);
+
   timerInt = setInterval(function(){
-    if (gameOver) return;
     timeLeft -= 1;
     updateHud();
     if (timeLeft <= 0){
+      clearInterval(timerInt);
+      clearInterval(spawnGood);
+      clearInterval(spawnBad);
       finishGame(collected >= 10, collected >= 10 ? null : ('Время вышло. Собрано: ' + collected + '/10.'));
     }
   }, 1000);
-
-  // спавн хороших и плохих по интервалам
-  spawnGood = setInterval(function(){ if (!gameOver) spawnIngredient(false); }, 3200);
-  spawnBad = setInterval(function(){ if (!gameOver) spawnIngredient(true); }, 4500);
-
-  // первые ингредиенты — с задержкой, чтобы GPS-камера успела обновиться, и по одному в разные стороны
-  setTimeout(function(){
-    if (gameOver) return;
-    spawnIngredient(false);
-    setTimeout(function(){ if (!gameOver) spawnIngredient(false); }, 400);
-    setTimeout(function(){ if (!gameOver) spawnIngredient(false); }, 800);
-    setTimeout(function(){ if (!gameOver) spawnIngredient(false); }, 1200);
-  }, 800);
 }
 
 document.getElementById('btn-again').addEventListener('click', function(){
@@ -334,7 +320,7 @@ function setCoords(lat, lon, demo){
   userLat = lat;
   userLon = lon;
   coordEl.textContent = lat.toFixed(5)+', '+lon.toFixed(5)+(demo ? ' (демо)' : '');
-  tryStartGame();
+  if (!gameStarted) startGame();
 }
 
 function useFallback(){
@@ -364,9 +350,6 @@ if (navigator.geolocation){
 setTimeout(function(){ if(!userLat || !userLon) useFallback(); }, 12000);
 
 sceneEl.addEventListener('loaded', function(){
-  sceneLoaded = true;
-  tryStartGame();
-
   var canvas  = this.canvas;
   var scene3d = this.object3D;
   var raycaster   = new THREE.Raycaster();
