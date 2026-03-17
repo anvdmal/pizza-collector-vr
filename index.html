@@ -89,6 +89,7 @@
       border-radius:12px;border:2px solid var(--cheese);background:rgba(245,158,11,.25);
       color:var(--cheese);
     }
+    #gps-wait .start-btn{ background:rgba(22,163,74,.35); border-color:var(--basil); color:#b8f5d0; font-size:17px; padding:16px 28px; }
     #result{
       display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.86);
       justify-content:center;align-items:center;flex-direction:column;
@@ -126,6 +127,10 @@
   <div class="t">Нужна геолокация</div>
   <div class="s">Нажми кнопку — браузер запросит доступ к местоположению (для AR по GPS).</div>
   <button type="button" id="btn-request-geo" class="geo-btn">Разрешить геолокацию</button>
+  <div id="ready-block" style="display:none;">
+    <div class="s">Всё готово. Разрешения даны. Нажми Старт — начнётся таймер и игра.</div>
+    <button type="button" id="btn-start-game" class="geo-btn start-btn">Старт</button>
+  </div>
 </div>
 
 <div id="result">
@@ -332,7 +337,7 @@ function setCoords(lat, lon, demo){
   userLat = lat;
   userLon = lon;
   coordEl.textContent = lat.toFixed(5)+', '+lon.toFixed(5)+(demo ? ' (демо)' : '');
-  if (!gameStarted) startGame();
+  if (!gameStarted) showStartButton();
 }
 
 function useFallback(){
@@ -349,6 +354,15 @@ window.addEventListener('gps-camera-update-position', function(e){
   setCoords(e.detail.position.latitude, e.detail.position.longitude, false);
 });
 
+function showStartButton(){
+  var readyBlock = document.getElementById('ready-block');
+  var btnGeo = document.getElementById('btn-request-geo');
+  if (readyBlock){ readyBlock.style.display = 'block'; }
+  if (btnGeo){ btnGeo.style.display = 'none'; }
+  document.querySelector('#gps-wait .t').textContent = 'Готово к старту';
+  document.querySelector('#gps-wait .s').textContent = '';
+}
+
 function startWatchingGeo(){
   if (!navigator.geolocation){
     useFallback();
@@ -364,6 +378,16 @@ function startWatchingGeo(){
     function(){ useFallback(); },
     {enableHighAccuracy: true, timeout: 10000, maximumAge: 0}
   );
+}
+
+var btnStartGame = document.getElementById('btn-start-game');
+if (btnStartGame){
+  btnStartGame.addEventListener('click', function(){
+    if (!gameStarted && userLat != null && userLon != null) {
+      gpsWait.style.display = 'none';
+      startGame();
+    }
+  });
 }
 
 var btnRequestGeo = document.getElementById('btn-request-geo');
