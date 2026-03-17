@@ -125,98 +125,11 @@
             display: none;
         }
 
-        #loadingBanner {
-            --pizza-tomato: #e11d48;   /* tomato red */
-            --pizza-basil: #16a34a;    /* basil green */
-            --pizza-cheese: #fff7d6;   /* mozzarella/cheese */
-            --pizza-olive: #0b0f14;    /* oven dark */
-            --pizza-crust: #f59e0b;    /* crust gold */
-            --pizza-ink: #101828;
-            --pizza-card: rgba(255, 247, 214, 0.10);
-            position: fixed;
-            inset: 0;
-            z-index: 20;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background:
-                radial-gradient(1200px 700px at 20% 10%, rgba(225, 29, 72, 0.20), transparent 60%),
-                radial-gradient(900px 600px at 80% 0%, rgba(22, 163, 74, 0.16), transparent 55%),
-                radial-gradient(900px 700px at 60% 100%, rgba(245, 158, 11, 0.12), transparent 60%),
-                rgba(0, 0, 0, 0.72);
-            backdrop-filter: blur(6px);
-        }
-        #loadingCard {
-            width: min(520px, calc(100vw - 32px));
-            background:
-                linear-gradient(180deg, rgba(16, 24, 40, 0.82), rgba(11, 15, 20, 0.88)),
-                radial-gradient(900px 300px at 20% 0%, rgba(225, 29, 72, 0.16), transparent 60%),
-                radial-gradient(700px 260px at 85% 20%, rgba(22, 163, 74, 0.14), transparent 55%),
-                rgba(11, 15, 20, 0.86);
-            border: 1px solid rgba(255, 247, 214, 0.22);
-            border-radius: 16px;
-            padding: 18px 18px 16px;
-            color: #fff;
-            box-shadow:
-                0 16px 60px rgba(0,0,0,0.65),
-                0 0 0 1px rgba(225, 29, 72, 0.10) inset;
-        }
-        #loadingTitle {
-            font-size: 16px;
-            font-weight: 800;
-            letter-spacing: 0.2px;
-            color: var(--pizza-cheese);
-            margin-bottom: 8px;
-            text-shadow: 0 0 18px rgba(225, 29, 72, 0.22);
-        }
-        #loadingSub {
-            font-size: 13px;
-            color: rgba(255, 247, 214, 0.85);
-            line-height: 1.35;
-            margin-bottom: 12px;
-        }
-        #loadingBarOuter {
-            height: 10px;
-            border-radius: 999px;
-            background: rgba(255, 247, 214, 0.14);
-            overflow: hidden;
-            box-shadow: 0 0 0 1px rgba(255, 247, 214, 0.14) inset;
-        }
-        #loadingBarInner {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, var(--pizza-basil), var(--pizza-crust), var(--pizza-tomato));
-            border-radius: 999px;
-            transition: width 180ms ease;
-        }
-        #loadingMeta {
-            margin-top: 10px;
-            display: flex;
-            gap: 10px;
-            align-items: baseline;
-            justify-content: space-between;
-            font-size: 12px;
-            color: rgba(255, 247, 214, 0.78);
-        }
-        #loadingMeta b { color: var(--pizza-cheese); }
-        #loadingMeta .err { color: #fecaca; }
+        /* Loader banner removed: models load in background on Pages. */
     </style>
 </head>
 <body>
     <video id="cameraBg" autoplay playsinline muted></video>
-
-    <div id="loadingBanner">
-        <div id="loadingCard">
-            <div id="loadingTitle">Загрузка моделей…</div>
-            <div id="loadingSub">Игра начнётся, когда все объекты будут готовы.</div>
-            <div id="loadingBarOuter"><div id="loadingBarInner"></div></div>
-            <div id="loadingMeta">
-                <div id="loadingCount"><b>0</b>/<b>0</b></div>
-                <div id="loadingPct">0%</div>
-            </div>
-            <div id="loadingError" class="err" style="display:none; margin-top: 10px; font-size: 12px;"></div>
-        </div>
-    </div>
 
     <div id="overlay">
         <div><b>Pizza Hunt AR</b></div>
@@ -287,11 +200,6 @@
             var winScreen = document.getElementById('winScreen');
             var loseBanner = document.getElementById('loseBanner');
             var gpsCoordsList = document.getElementById('gpsCoordsList');
-            var loadingBanner = document.getElementById('loadingBanner');
-            var loadingBarInner = document.getElementById('loadingBarInner');
-            var loadingCount = document.getElementById('loadingCount');
-            var loadingPct = document.getElementById('loadingPct');
-            var loadingError = document.getElementById('loadingError');
             var sceneEl = document.querySelector('a-scene');
 
             var collected = 0;
@@ -306,7 +214,7 @@
             var objectLayout = null; // { [id]: { northM, eastM, y, scale } }
             var hitButtons = {};
             var TOTAL_TARGETS = 15;
-            var assetsReady = false;
+            var assetsReady = true; // non-blocking: allow start immediately
 
             var itemConfigs = [
                 { id: 'item01', label: 'Cheese', model: '#cheeseModel', scale: '0.46 0.46 0.46', y: 2.20, north: 12, east: 0, duration: 5000, isFake: false },
@@ -633,7 +541,6 @@
             }
 
             function startGame() {
-                if (!assetsReady) return;
                 collected = 0;
                 timeLeft = 35;
                 gameActive = true;
@@ -701,64 +608,22 @@
                 startGameBtn.style.cursor = enabled ? 'pointer' : 'not-allowed';
             }
 
-            function updateLoadingUi(loaded, total) {
-                var safeTotal = Math.max(0, total || 0);
-                var safeLoaded = Math.min(Math.max(0, loaded || 0), safeTotal || 0);
-                var pct = safeTotal ? Math.round((safeLoaded / safeTotal) * 100) : 0;
-
-                if (loadingBarInner) loadingBarInner.style.width = pct + '%';
-                if (loadingPct) loadingPct.textContent = pct + '%';
-                if (loadingCount) loadingCount.innerHTML = '<b>' + safeLoaded + '</b>/<b>' + safeTotal + '</b>';
-            }
-
-            function beginAssetLoadingGate() {
-                setStartEnabled(false);
-                assetsReady = false;
-                if (loadingBanner) loadingBanner.style.display = 'flex';
-
+            function beginAssetLoadingWatchdog() {
                 var assetsEl = document.querySelector('a-scene a-assets') || document.querySelector('a-assets');
                 var items = assetsEl ? Array.prototype.slice.call(assetsEl.querySelectorAll('a-asset-item')) : [];
-                var total = items.length;
-                var loaded = 0;
-                var hadError = false;
+                if (!items.length) return;
 
-                updateLoadingUi(0, total);
-
-                if (!total) {
-                    assetsReady = true;
-                    setStartEnabled(true);
-                    if (loadingBanner) loadingBanner.style.display = 'none';
-                    return;
-                }
-
-                function onOneDone() {
-                    loaded += 1;
-                    updateLoadingUi(loaded, total);
-                    if (loaded >= total) {
-                        assetsReady = true;
-                        setStartEnabled(true);
-                        if (loadingBanner) loadingBanner.style.display = 'none';
-                        if (hadError && loadingError) {
-                            loadingError.style.display = 'none';
-                            loadingError.textContent = '';
-                        }
-                    }
+                assetsReady = false;
+                var remaining = items.length;
+                function oneDone() {
+                    remaining -= 1;
+                    if (remaining <= 0) assetsReady = true;
                 }
 
                 items.forEach(function (it) {
-                    if (it.hasLoaded) {
-                        onOneDone();
-                        return;
-                    }
-                    it.addEventListener('loaded', onOneDone, { once: true });
-                    it.addEventListener('error', function (e) {
-                        hadError = true;
-                        if (loadingError) {
-                            loadingError.style.display = 'block';
-                            loadingError.textContent = 'Не удалось загрузить один из файлов модели. Проверьте, что все пути в <a-assets> корректны.';
-                        }
-                        onOneDone();
-                    }, { once: true });
+                    if (it.hasLoaded) return oneDone();
+                    it.addEventListener('loaded', oneDone, { once: true });
+                    it.addEventListener('error', oneDone, { once: true });
                 });
             }
 
@@ -789,10 +654,12 @@
                 });
             }
 
+            // No loader: just track in background (optional).
+            setStartEnabled(true);
             if (sceneEl && !sceneEl.hasLoaded) {
-                sceneEl.addEventListener('loaded', beginAssetLoadingGate, { once: true });
+                sceneEl.addEventListener('loaded', beginAssetLoadingWatchdog, { once: true });
             } else {
-                beginAssetLoadingGate();
+                beginAssetLoadingWatchdog();
             }
             startCamera();
             startGps();
