@@ -229,7 +229,7 @@ function finishGame(win, reason){
 var spawnAngle = 0;
 function rndOffset(){
   spawnAngle += 1.2 + Math.random() * 0.8;
-  var dist = isMobile ? (0.4 + Math.random() * 1.2) / 111000 : (1 + Math.random() * 2) / 111000;
+  var dist = isMobile ? (0.4 + Math.random() * 1.2) / 111000 : (0.6 + Math.random() * 1.4) / 111000;
   return { lat: Math.cos(spawnAngle)*dist, lon: Math.sin(spawnAngle)*dist };
 }
 
@@ -242,7 +242,7 @@ function spawnIngredient(isBad){
   var el = document.createElement('a-entity');
   el.setAttribute('position', '0 2 0');
   el.setAttribute('class', 'clickable');
-  el.setAttribute('scale', isMobile ? '1.2 1.2 1.2' : '0.8 0.8 0.8');
+  el.setAttribute('scale', isMobile ? '1.2 1.2 1.2' : '0.65 0.65 0.65');
 
   var pool = isBad ? BAD_MODELS : GOOD_MODELS;
   var modelId = pool[Math.floor(Math.random() * pool.length)];
