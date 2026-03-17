@@ -196,8 +196,9 @@ function finishGame(win, reason){
 
 var spawnAngle = 0;
 function rndOffset(){
-  spawnAngle += 1.2 + Math.random()*0.8;
-  var dist = (3 + Math.random()*5) / 111000;
+  // крутимся вокруг игрока по кругу, но ближе и ниже горизонта
+  spawnAngle += 0.9 + Math.random()*0.6;
+  var dist = (6 + Math.random()*4) / 111000; // примерно 6–10 метров
   return { lat: Math.cos(spawnAngle)*dist, lon: Math.sin(spawnAngle)*dist };
 }
 
@@ -210,7 +211,7 @@ function spawnIngredient(isBad){
   var el = document.createElement('a-entity');
   el.setAttribute('look-at', '#gps-cam');
   el.setAttribute('class', 'clickable');
-  el.setAttribute('scale', isBad ? '6 6 6' : '7.5 7.5 7.5');
+  el.setAttribute('scale', isBad ? '3.2 3.2 3.2' : '3.8 3.8 3.8');
 
   var modelsGood = ['#cheeseModel','#pizzaBoxModel','#tomatoModel'];
   var modelsBad  = ['#garlicModel','#cabbageModel','#pumpkinModel'];
@@ -260,8 +261,11 @@ function startGame(){
   timeLeft  = 30;
   updateHud();
 
-  spawnIngredient(false);
-  spawnGood = setInterval(function(){ if (!gameOver) spawnIngredient(false); }, 3000);
+  // в начале сразу несколько хороших ингредиентов вокруг
+  for (var i = 0; i < 4; i++) {
+    spawnIngredient(false);
+  }
+  spawnGood = setInterval(function(){ if (!gameOver) spawnIngredient(false); }, 3200);
   spawnBad  = setInterval(function(){ if (!gameOver) spawnIngredient(true);  }, 6500);
 
   timerInt = setInterval(function(){
