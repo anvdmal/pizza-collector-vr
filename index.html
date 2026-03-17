@@ -196,9 +196,10 @@ function finishGame(win, reason){
 
 var spawnAngle = 0;
 function rndOffset(){
-  // крутимся вокруг игрока по кругу, но ближе и ниже горизонта
-  spawnAngle += 0.9 + Math.random()*0.6;
-  var dist = (6 + Math.random()*4) / 111000; // примерно 6–10 метров
+  // крутимся вокруг игрока по кругу
+  spawnAngle += 1.0 + Math.random()*0.8;
+  // сильно дальше: примерно 20–35 метров
+  var dist = (20 + Math.random()*15) / 111000;
   return { lat: Math.cos(spawnAngle)*dist, lon: Math.sin(spawnAngle)*dist };
 }
 
@@ -211,7 +212,8 @@ function spawnIngredient(isBad){
   var el = document.createElement('a-entity');
   el.setAttribute('look-at', '#gps-cam');
   el.setAttribute('class', 'clickable');
-  el.setAttribute('scale', isBad ? '3.2 3.2 3.2' : '3.8 3.8 3.8');
+  // модели очень большие, поэтому жёстко уменьшаем масштаб
+  el.setAttribute('scale', isBad ? '0.12 0.12 0.12' : '0.15 0.15 0.15');
 
   var modelsGood = ['#cheeseModel','#pizzaBoxModel','#tomatoModel'];
   var modelsBad  = ['#garlicModel','#cabbageModel','#pumpkinModel'];
