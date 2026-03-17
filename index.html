@@ -4,9 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
   <title>Pizza Hunt AR</title>
-  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/aframe-look-at-component@1.0.0/dist/aframe-look-at-component.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.3.2/aframe/build/aframe-ar.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.7/three.js/build/ar-threex-location-only.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.7/aframe/build/aframe-ar.js"></script>
   <link rel="stylesheet" href="./style.css">
   <style>
     :root{
@@ -118,7 +119,7 @@
 
 <div id="gps-wait">
   <div class="t">Ищем тебя на карте…</div>
-  <div class="s">Разреши доступ к местоположению. Если долго думает — выйди к окну или на улицу.</div>
+  <div class="s">Разреши доступ к местоположению.</div>
 </div>
 
 <div id="result">
@@ -141,7 +142,7 @@
     <a-asset-item id="pumpkinModel" src="pizza%20models/pumpkin.glb"></a-asset-item>
   </a-assets>
 
-  <a-camera id="gps-cam" gps-camera rotation-reader></a-camera>
+  <a-camera id="gps-cam" gps-new-camera="gpsMinDistance: 0" rotation-reader></a-camera>
 </a-scene>
 
 <script>
@@ -200,7 +201,7 @@ function finishGame(win, reason){
   timerInt = null;
   spawnGood = null;
   spawnBad = null;
-  var gpsEntities = sceneEl.querySelectorAll('a-entity[gps-entity-place]');
+  var gpsEntities = sceneEl.querySelectorAll('a-entity[gps-new-entity-place]');
   for (var i=0;i<gpsEntities.length;i++) gpsEntities[i].remove();
   if (win){
     resultTitle.textContent = 'Заказ собран';
@@ -226,7 +227,7 @@ function spawnIngredient(isBad){
   var lon = userLon + o.lon;
 
   var el = document.createElement('a-entity');
-  el.setAttribute('look-at', '[gps-camera]');
+  el.setAttribute('look-at', '[gps-new-camera]');
   el.setAttribute('class', 'clickable');
   el.setAttribute('scale', '1.5 1.5 1.5');
 
@@ -264,9 +265,9 @@ function spawnIngredient(isBad){
   });
 
   sceneEl.appendChild(el);
-  el.setAttribute('gps-entity-place', 'latitude: '+lat+'; longitude: '+lon+';');
-  if (el.components['gps-entity-place'] && el.components['gps-entity-place']._updatePosition) {
-    el.components['gps-entity-place']._updatePosition();
+  el.setAttribute('gps-new-entity-place', 'latitude: '+lat+'; longitude: '+lon+';');
+  if (el.components['gps-new-entity-place'] && el.components['gps-new-entity-place']._updatePosition) {
+    el.components['gps-new-entity-place']._updatePosition();
   }
   setTimeout(function(){ if(!handled && el.parentNode) el.remove(); }, isBad ? 12000 : 9000);
 }
@@ -310,7 +311,7 @@ document.getElementById('btn-again').addEventListener('click', function(){
   spawnBad = null;
   updateHud();
   if (sceneEl){
-    var list = sceneEl.querySelectorAll('a-entity[gps-entity-place]');
+    var list = sceneEl.querySelectorAll('a-entity[gps-new-entity-place]');
     for (var i=0;i<list.length;i++) list[i].remove();
   }
   startGame();
@@ -327,8 +328,8 @@ function useFallback(){
   if (userLat && userLon) return;
   infoEl.textContent = 'Не получилось получить местоположение — запускаю демо-режим.';
   var cam = document.getElementById('gps-cam');
-  if (cam && cam.components['gps-camera']){
-    cam.setAttribute('gps-camera','simulateLatitude:'+DEFAULT_LAT+'; simulateLongitude:'+DEFAULT_LON+';');
+  if (cam && cam.components['gps-new-camera']){
+    cam.setAttribute('gps-new-camera','simulateLatitude:'+DEFAULT_LAT+'; simulateLongitude:'+DEFAULT_LON+';');
   }
   setCoords(DEFAULT_LAT, DEFAULT_LON, true);
 }
