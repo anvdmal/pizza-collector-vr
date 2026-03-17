@@ -1,0 +1,177 @@
+body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; background: #000; }
+#cameraBg {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    z-index: 0;
+    background: #000;
+}
+:root {
+    --pizza-tomato: #e11d48;
+    --pizza-basil: #16a34a;
+    --pizza-cheese: #fff7d6;
+    --pizza-crust: #f59e0b;
+    --pizza-oven: #0b0f14;
+}
+
+#overlay {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 4;
+    background:
+        radial-gradient(220px 140px at 12% 12%, rgba(225, 29, 72, 0.22), transparent 62%),
+        radial-gradient(260px 160px at 92% 18%, rgba(22, 163, 74, 0.16), transparent 60%),
+        linear-gradient(180deg, rgba(11, 15, 20, 0.86), rgba(11, 15, 20, 0.72));
+    color: rgba(255, 247, 214, 0.92);
+    padding: 12px 14px;
+    border-radius: 14px;
+    max-width: 340px;
+    font-size: 14px;
+    line-height: 1.4;
+    border: 1px solid rgba(255, 247, 214, 0.22);
+    box-shadow:
+        0 14px 42px rgba(0,0,0,0.55),
+        0 0 0 1px rgba(225, 29, 72, 0.10) inset;
+}
+#overlay b { color: var(--pizza-cheese); }
+
+#overlay #timerTextDom,
+#overlay #scoreTextDom {
+    font-weight: 800;
+    letter-spacing: 0.2px;
+    color: rgba(255, 247, 214, 0.96);
+}
+#overlay #timerTextDom { text-shadow: 0 0 14px rgba(225, 29, 72, 0.22); }
+#overlay #scoreTextDom { text-shadow: 0 0 14px rgba(22, 163, 74, 0.18); }
+
+.result-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.result-content { text-align: center; color: #fff; }
+.result-content img { max-width: 80vw; max-height: 50vh; }
+.result-title { font-size: 2rem; font-weight: 700; color: #ffd166; margin: 16px 0 8px; }
+.result-sub { font-size: 1.1rem; color: #d1d5db; }
+
+.lose-banner {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    background: #b91c1c;
+    color: #fff;
+    font-size: 1.5rem;
+    font-weight: 700;
+    padding: 24px 48px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    text-align: center;
+}
+.lose-banner .lose-restart-btn {
+    display: block;
+    margin-top: 20px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 12px 24px;
+    font-size: 1rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 10px;
+    background: #fff;
+    color: #b91c1c;
+    cursor: pointer;
+}
+.lose-banner .lose-restart-btn:hover { background: #fef2f2; }
+
+#gpsPanel {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    z-index: 4;
+    border-radius: 14px;
+    padding: 10px 12px;
+    background: rgba(11, 15, 20, 0.62);
+    border: 1px solid rgba(255, 247, 214, 0.14);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.45);
+    backdrop-filter: blur(6px);
+}
+#gpsPanelTitle {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: baseline;
+    font-size: 12px;
+    color: rgba(255, 247, 214, 0.80);
+    margin-bottom: 8px;
+    letter-spacing: 0.2px;
+}
+#gpsCoordsList {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 10px;
+    font-size: 11px;
+    color: rgba(255, 247, 214, 0.82);
+    line-height: 1.25;
+    max-height: 26vh;
+    overflow: auto;
+}
+#gpsCoordsList .row {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0.95;
+}
+
+#controls {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.ui-btn {
+    border: none;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font: 700 14px Arial, sans-serif;
+    cursor: pointer;
+    background: #ffd166;
+    color: #4b2e12;
+}
+.ui-btn.secondary {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+
+#hitLayer {
+    position: fixed;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+}
+.hitspot {
+    position: absolute;
+    width: 96px;
+    height: 96px;
+    border-radius: 999px;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.18);
+    font: 700 14px Arial, sans-serif;
+    pointer-events: auto;
+    cursor: pointer;
+    box-shadow: none;
+    outline: none;
+    text-shadow: 0 0 8px rgba(0, 0, 0, 0.55);
+}
+.hitspot.hidden { display: none; }
+
