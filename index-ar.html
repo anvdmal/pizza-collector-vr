@@ -261,7 +261,6 @@
             var winScreen = document.getElementById('winScreen');
             var loseBanner = document.getElementById('loseBanner');
             var gpsCoordsList = document.getElementById('gpsCoordsList');
-            var sceneEl = document.querySelector('a-scene');
 
             var collected = 0;
             var timeLeft = 30;
@@ -275,7 +274,6 @@
             var objectLayout = null; // { [id]: { northM, eastM, y, scale } }
             var hitButtons = {};
             var TOTAL_TARGETS = 10;
-            var assetsReady = true; // non-blocking: allow start immediately
             var gpsAnchorText = document.getElementById('gpsAnchorText');
 
             var itemConfigs = [
@@ -340,8 +338,6 @@
 
                 for (var idx = 0; idx < n; idx++) {
                     var config = itemConfigs[idx];
-                    var isFake = !!config.isFake;
-
                     var arc = (Math.random() < 0.82) ? (220 * Math.PI / 180) : (360 * Math.PI / 180);
                     var start = -arc / 2;
                     var step = arc / Math.max(1, n - 1);
@@ -365,8 +361,8 @@
                     }
 
                     // Wider vertical spread so items don't look "on one shelf".
-                    var yMin = isFake ? 1.1 : 0.9;
-                    var yMax = isFake ? 4.8 : 4.2;
+                    var yMin = 0.9;
+                    var yMax = 4.5;
                     var baseY = isFinite(parseFloat(config.y)) ? parseFloat(config.y) : ((yMin + yMax) / 2);
                     var y = clamp(baseY + (Math.random() - 0.5) * 1.8, yMin, yMax);
 
@@ -650,32 +646,6 @@
                 }
             }
 
-            function setStartEnabled(enabled) {
-                if (!startGameBtn) return;
-                startGameBtn.disabled = !enabled;
-                startGameBtn.style.opacity = enabled ? '1' : '0.55';
-                startGameBtn.style.cursor = enabled ? 'pointer' : 'not-allowed';
-            }
-
-            function beginAssetLoadingWatchdog() {
-                var assetsEl = document.querySelector('a-scene a-assets') || document.querySelector('a-assets');
-                var items = assetsEl ? Array.prototype.slice.call(assetsEl.querySelectorAll('a-asset-item')) : [];
-                if (!items.length) return;
-
-                assetsReady = false;
-                var remaining = items.length;
-                function oneDone() {
-                    remaining -= 1;
-                    if (remaining <= 0) assetsReady = true;
-                }
-
-                items.forEach(function (it) {
-                    if (it.hasLoaded) return oneDone();
-                    it.addEventListener('loaded', oneDone, { once: true });
-                    it.addEventListener('error', oneDone, { once: true });
-                });
-            }
-
             createCollectibles();
             userCoords = userCoords || { latitude: 59.9343, longitude: 30.3351 };
             ensureObjectCoords(userCoords.latitude, userCoords.longitude, 'placeholder', true);
@@ -703,13 +673,6 @@
                 });
             }
 
-            // No loader: just track in background (optional).
-            setStartEnabled(true);
-            if (sceneEl && !sceneEl.hasLoaded) {
-                sceneEl.addEventListener('loaded', beginAssetLoadingWatchdog, { once: true });
-            } else {
-                beginAssetLoadingWatchdog();
-            }
             startCamera();
             startGps();
             updateHud();
