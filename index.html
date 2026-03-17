@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
   <title>Pizza Hunt AR</title>
-  <!-- Используем связку версий, совместимую с AR.js location-based -->
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/aframe-look-at-component@1.0.0/dist/aframe-look-at-component.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.3.2/aframe/build/aframe-ar.js"></script>
@@ -163,6 +162,19 @@ var spawnGood = null;
 var spawnBad  = null;
 var gameOver  = false;
 
+// модели: хорошие и фейковые (опасные)
+var GOOD_MODELS = ['#cheeseModel', '#pizzaBoxModel', '#tomatoModel'];
+var BAD_MODELS  = ['#garlicModel', '#cabbageModel', '#pumpkinModel'];
+
+var MODEL_TITLES = {
+  '#cheeseModel': 'сыр',
+  '#pizzaBoxModel': 'коробка пиццы',
+  '#tomatoModel': 'помидор',
+  '#garlicModel': 'чеснок',
+  '#cabbageModel': 'капуста',
+  '#pumpkinModel': 'тыква'
+};
+
 var userLat = null, userLon = null;
 var DEFAULT_LAT = 55.7539, DEFAULT_LON = 37.6208;
 
@@ -183,6 +195,9 @@ function finishGame(win, reason){
   clearInterval(timerInt);
   clearInterval(spawnGood);
   clearInterval(spawnBad);
+  timerInt = null;
+  spawnGood = null;
+  spawnBad = null;
   var gpsEntities = sceneEl.querySelectorAll('a-entity[gps-entity-place]');
   for (var i=0;i<gpsEntities.length;i++) gpsEntities[i].remove();
   if (win){
@@ -212,10 +227,11 @@ function spawnIngredient(isBad){
   var el = document.createElement('a-entity');
   el.setAttribute('look-at', '#gps-cam');
   el.setAttribute('class', 'clickable');
-  // для отладки оставляем только сыр, без плохих ингредиентов
   el.setAttribute('scale', '0.8 0.8 0.8');
 
-  var modelId = '#cheeseModel';
+  // выбираем случайную модель в зависимости от типа
+  var pool = isBad ? BAD_MODELS : GOOD_MODELS;
+  var modelId = pool[Math.floor(Math.random() * pool.length)];
 
   var m = document.createElement('a-entity');
   m.setAttribute('gltf-model', modelId);
@@ -227,12 +243,20 @@ function spawnIngredient(isBad){
   el.addEventListener('click', function(){
     if (handled || gameOver) return;
     handled = true;
-    collected += 1;
-    sndOk();
-    infoEl.textContent = 'Собрано: ' + collected + '/10';
-    updateHud();
-    if (collected >= 10){
-      finishGame(true);
+    if (isBad){
+      // фейковый ингредиент — мгновенный проигрыш
+      sndBad();
+      var title = MODEL_TITLES[modelId] || 'опасный ингредиент';
+      infoEl.textContent = 'Пойман ' + title + ' — заказ испорчен.';
+      finishGame(false, 'Ты поймал фейковый ингредиент (' + title + '). Игра окончена.');
+    } else {
+      collected += 1;
+      sndOk();
+      infoEl.textContent = 'Собрано: ' + collected + '/10';
+      updateHud();
+      if (collected >= 10){
+        finishGame(true);
+      }
     }
     el.setAttribute('animation__die','property:scale; to:0 0 0; dur:260; easing:easeInBack');
     setTimeout(function(){ if(el.parentNode) el.remove(); }, 280);
@@ -259,7 +283,8 @@ function startGame(){
     spawnIngredient(false);
   }
   spawnGood = setInterval(function(){ if (!gameOver) spawnIngredient(false); }, 3200);
-  // временно отключаем спавн плохих ингредиентов
+  // фейковые ингредиенты вокруг игрока
+  spawnBad = setInterval(function(){ if (!gameOver) spawnIngredient(true); }, 4500);
 
   timerInt = setInterval(function(){
     if (gameOver) return;
@@ -276,6 +301,13 @@ document.getElementById('btn-again').addEventListener('click', function(){
   gameOver = false;
   collected = 0;
   timeLeft  = 30;
+   // на новый раунд подчистим интервалы и сущности
+  clearInterval(timerInt);
+  clearInterval(spawnGood);
+  clearInterval(spawnBad);
+  timerInt = null;
+  spawnGood = null;
+  spawnBad = null;
   updateHud();
   if (sceneEl){
     var list = sceneEl.querySelectorAll('a-entity[gps-entity-place]');
