@@ -161,6 +161,8 @@ var timerInt  = null;
 var spawnGood = null;
 var spawnBad  = null;
 var gameOver  = false;
+var gameStarted = false;
+var sceneLoaded = false;
 
 // модели: хорошие и фейковые (опасные)
 var GOOD_MODELS = ['#cheeseModel', '#pizzaBoxModel', '#tomatoModel'];
@@ -187,6 +189,11 @@ function sndBad(){ beep(200,0.25,0.3); setTimeout(function(){beep(140,0.25,0.25)
 function updateHud(){
   scoreEl.textContent = collected;
   timerEl.textContent = timeLeft;
+}
+
+function tryStartGame(){
+  if (gameStarted || gameOver || userLat == null || userLon == null || !sceneLoaded) return;
+  startGame();
 }
 
 function finishGame(win, reason){
@@ -225,9 +232,9 @@ function spawnIngredient(isBad){
   var lon = userLon + o.lon;
 
   var el = document.createElement('a-entity');
-  el.setAttribute('look-at', '#gps-cam');
+  el.setAttribute('look-at', '[gps-camera]');
   el.setAttribute('class', 'clickable');
-  el.setAttribute('scale', '0.8 0.8 0.8');
+  el.setAttribute('scale', '5 5 5');
 
   // выбираем случайную модель в зависимости от типа
   var pool = isBad ? BAD_MODELS : GOOD_MODELS;
@@ -271,21 +278,15 @@ function spawnIngredient(isBad){
 }
 
 function startGame(){
-  if (gameOver || !userLat || !userLon) return;
+  if (gameStarted || gameOver || !userLat || !userLon || !sceneLoaded) return;
+  gameStarted = true;
   gpsWait.style.display = 'none';
   infoEl.textContent = 'Статус: игра началась';
   collected = 0;
   timeLeft  = 30;
   updateHud();
 
-  // в начале сразу несколько хороших ингредиентов вокруг
-  for (var i = 0; i < 4; i++) {
-    spawnIngredient(false);
-  }
-  spawnGood = setInterval(function(){ if (!gameOver) spawnIngredient(false); }, 3200);
-  // фейковые ингредиенты вокруг игрока
-  spawnBad = setInterval(function(){ if (!gameOver) spawnIngredient(true); }, 4500);
-
+  // таймер обратного отсчёта — запускаем сразу
   timerInt = setInterval(function(){
     if (gameOver) return;
     timeLeft -= 1;
@@ -293,15 +294,28 @@ function startGame(){
     if (timeLeft <= 0){
       finishGame(collected >= 10, collected >= 10 ? null : ('Время вышло. Собрано: ' + collected + '/10.'));
     }
-  },1000);
+  }, 1000);
+
+  // спавн хороших и плохих по интервалам
+  spawnGood = setInterval(function(){ if (!gameOver) spawnIngredient(false); }, 3200);
+  spawnBad = setInterval(function(){ if (!gameOver) spawnIngredient(true); }, 4500);
+
+  // первые ингредиенты — с задержкой, чтобы GPS-камера успела обновиться, и по одному в разные стороны
+  setTimeout(function(){
+    if (gameOver) return;
+    spawnIngredient(false);
+    setTimeout(function(){ if (!gameOver) spawnIngredient(false); }, 400);
+    setTimeout(function(){ if (!gameOver) spawnIngredient(false); }, 800);
+    setTimeout(function(){ if (!gameOver) spawnIngredient(false); }, 1200);
+  }, 800);
 }
 
 document.getElementById('btn-again').addEventListener('click', function(){
   resultEl.classList.remove('show');
   gameOver = false;
+  gameStarted = false;
   collected = 0;
   timeLeft  = 30;
-   // на новый раунд подчистим интервалы и сущности
   clearInterval(timerInt);
   clearInterval(spawnGood);
   clearInterval(spawnBad);
@@ -320,7 +334,7 @@ function setCoords(lat, lon, demo){
   userLat = lat;
   userLon = lon;
   coordEl.textContent = lat.toFixed(5)+', '+lon.toFixed(5)+(demo ? ' (демо)' : '');
-  if (!timerInt && !gameOver) startGame();
+  tryStartGame();
 }
 
 function useFallback(){
@@ -350,6 +364,9 @@ if (navigator.geolocation){
 setTimeout(function(){ if(!userLat || !userLon) useFallback(); }, 12000);
 
 sceneEl.addEventListener('loaded', function(){
+  sceneLoaded = true;
+  tryStartGame();
+
   var canvas  = this.canvas;
   var scene3d = this.object3D;
   var raycaster   = new THREE.Raycaster();
@@ -400,9 +417,7 @@ sceneEl.addEventListener('loaded', function(){
 
 window.addEventListener('load', function(){
   setTimeout(function(){
-    if (!timerInt && !gameOver){
-      useFallback();
-    }
+    if (!gameStarted) useFallback();
   }, 5000);
 });
 </script>
