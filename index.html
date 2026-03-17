@@ -3,49 +3,117 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-  <title>Pizza Hunt AR (GPS)</title>
+  <title>Pizza Hunt AR</title>
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
   <script src="https://unpkg.com/aframe-look-at-component@1.0.0/dist/aframe-look-at-component.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
   <link rel="stylesheet" href="./style.css">
   <style>
-    body{overflow:hidden;font-family:'Segoe UI',sans-serif;touch-action:none}
-    #ui{position:fixed;top:0;left:0;right:0;z-index:999;pointer-events:none}
-    #btns{display:flex;justify-content:center;gap:8px;padding:12px;pointer-events:auto}
-    .abtn{background:rgba(0,0,0,.8);color:#fff;border:2px solid rgba(255,200,80,.5);padding:10px 16px;border-radius:10px;font-size:13px;cursor:pointer;text-decoration:none;font-weight:bold}
-    #hud{text-align:center;background:rgba(60,30,0,.88);border:2px solid rgba(255,200,80,.4);border-radius:14px;padding:8px 26px;color:#FFD700;font-size:1.1em;font-weight:bold;display:inline-block;margin:0 auto;display:flex;justify-content:center;gap:12px}
-    #coords{text-align:center;font-size:12px;color:#fff;background:rgba(0,0,0,.6);padding:4px 10px;border-radius:6px;margin-top:4px;display:flex;justify-content:center}
-    #info{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:999;pointer-events:none;background:rgba(0,0,0,.78);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;max-width:92%;text-align:center}
-    #gps-wait{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:999;background:rgba(0,0,0,.85);color:#fff;padding:24px 32px;border-radius:14px;text-align:center;font-size:15px}
-    #result{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.85);justify-content:center;align-items:center;flex-direction:column;color:#FFD700;text-align:center;padding:20px}
+    :root{
+      --tomato:#e11d48;
+      --basil:#16a34a;
+      --cheese:#fff7d6;
+      --crust:#f59e0b;
+      --oven:#0b0f14;
+    }
+    body{overflow:hidden;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;touch-action:none}
+    #ui{position:fixed;top:12px;left:12px;z-index:999;pointer-events:none}
+    #btns{display:none}
+    #hud{
+      pointer-events:none;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      padding:12px 14px 10px;
+      border-radius:16px;
+      color:rgba(255,247,214,.95);
+      background:
+        radial-gradient(240px 160px at 10% 10%, rgba(225,29,72,.22), transparent 62%),
+        radial-gradient(240px 160px at 95% 10%, rgba(22,163,74,.16), transparent 60%),
+        linear-gradient(180deg, rgba(11,15,20,.86), rgba(11,15,20,.72));
+      border:1px solid rgba(255,247,214,.22);
+      box-shadow:0 14px 42px rgba(0,0,0,.55), 0 0 0 1px rgba(225,29,72,.10) inset;
+      min-width: 220px;
+    }
+    #hudRow{
+      display:flex;
+      gap:12px;
+      align-items:baseline;
+      justify-content:space-between;
+      font-weight:900;
+      letter-spacing:.2px;
+      font-size:14px;
+      line-height:1.15;
+    }
+    #hudRow .k{opacity:.85;font-weight:800}
+    #hudRow .v{color:var(--cheese)}
+    #coords{
+      pointer-events:none;
+      font-size:11px;
+      opacity:.78;
+      color:rgba(255,247,214,.92);
+      display:flex;
+      gap:6px;
+      align-items:baseline;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    #info{
+      position:fixed;left:12px;right:12px;bottom:12px;z-index:999;
+      pointer-events:none;
+      background:rgba(11,15,20,.62);
+      border:1px solid rgba(255,247,214,.14);
+      color:rgba(255,247,214,.92);
+      box-shadow:0 10px 40px rgba(0,0,0,.45);
+      backdrop-filter:blur(6px);
+      padding:10px 12px;border-radius:14px;font-size:13px;line-height:1.25;
+    }
+    #gps-wait{
+      position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+      z-index:999;background:rgba(11,15,20,.88);color:rgba(255,247,214,.95);
+      border:1px solid rgba(255,247,214,.18);
+      box-shadow:0 18px 70px rgba(0,0,0,.65);
+      padding:18px 18px 16px;border-radius:16px;text-align:center;font-size:14px;max-width:min(92vw,420px)
+    }
+    #gps-wait .t{font-size:18px;font-weight:900;letter-spacing:.2px;color:var(--cheese);margin-bottom:8px}
+    #gps-wait .s{font-size:12px;opacity:.85;line-height:1.35}
+    #result{
+      display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.86);
+      justify-content:center;align-items:center;flex-direction:column;
+      color:rgba(255,247,214,.96);text-align:center;padding:20px
+    }
     #result.show{display:flex}
-    #result h2{font-size:1.8em;margin-bottom:12px}
-    #result .again{margin-top:20px;padding:12px 24px;font-size:16px;cursor:pointer;border-radius:10px;background:rgba(255,200,80,.3);border:2px solid #FFD700;color:#fff}
-    .fps{position:fixed;font-size:30px;font-weight:bold;pointer-events:none;z-index:999;animation:fup 1s ease-out forwards}
-    .fps.g{color:#FFD700;text-shadow:0 0 12px gold}.fps.b{color:#FF4444}
-    @keyframes fup{0%{opacity:1;transform:translateY(0) scale(1.2)}100%{opacity:0;transform:translateY(-70px) scale(.8)}}
+    #result h2{font-size:1.7em;margin-bottom:10px;color:var(--cheese);text-shadow:0 0 18px rgba(225,29,72,.18)}
+    #result p{max-width: 520px}
+    #result .again{
+      margin-top:18px;padding:12px 18px;font-size:15px;cursor:pointer;border-radius:12px;
+      background:linear-gradient(90deg, rgba(22,163,74,.22), rgba(245,158,11,.24), rgba(225,29,72,.22));
+      border:1px solid rgba(255,247,214,.26);color:#fff
+    }
+    .fps{position:fixed;font-size:28px;font-weight:900;pointer-events:none;z-index:999;animation:fup 1s ease-out forwards}
+    .fps.g{color:var(--cheese);text-shadow:0 0 14px rgba(245,158,11,.35)}
+    .fps.b{color:#ff4444}
+    @keyframes fup{0%{opacity:1;transform:translateY(0) scale(1.15)}100%{opacity:0;transform:translateY(-70px) scale(.85)}}
   </style>
 </head>
 <body>
 
 <div id="ui">
-  <div id="btns">
-    <span class="abtn" style="pointer-events:none;opacity:.9">Pizza Hunt AR (GPS)</span>
-  </div>
-  <div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:0 12px 8px">
-    <div id="hud">
-      <span>Собрано: <span id="score-count">0</span>/10</span>
-      <span>Время: <span id="timer">30</span> с</span>
+  <div id="hud">
+    <div id="hudRow">
+      <span><span class="k">Собрано</span> <span class="v"><span id="score-count">0</span>/10</span></span>
+      <span><span class="k">Время</span> <span class="v"><span id="timer">30</span>с</span></span>
     </div>
-    <div id="coords">GPS: <span id="coord-val">определяем...</span></div>
+    <div id="coords"><span style="opacity:.9">Местоположение:</span> <span id="coord-val">определяем…</span></div>
   </div>
 </div>
 
 <div id="info">Поверни телефон и ищи ингредиенты вокруг! Собери 10, но не трогай чеснок, капусту и тыкву.</div>
 
 <div id="gps-wait">
-  <div style="font-size:24px;margin-bottom:12px">Получение GPS...</div>
-  <div style="font-size:13px;opacity:0.8">Разреши доступ к геолокации.<br>Выйди на улицу для лучшего сигнала.</div>
+  <div class="t">Определяем местоположение…</div>
+  <div class="s">Разреши доступ к геолокации.<br>На улице/у окна работает лучше.</div>
 </div>
 
 <div id="result">
@@ -223,7 +291,7 @@ function setCoords(lat, lon, demo){
 
 function useFallback(){
   if (userLat && userLon) return;
-  infoEl.textContent = 'GPS недоступен — используем демо-координаты (Москва).';
+  infoEl.textContent = 'Геолокация недоступна — используем демо-координаты (Москва).';
   var cam = document.getElementById('gps-cam');
   if (cam && cam.components['gps-camera']){
     cam.setAttribute('gps-camera','simulateLatitude:'+DEFAULT_LAT+'; simulateLongitude:'+DEFAULT_LON+';');
