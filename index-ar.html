@@ -97,15 +97,45 @@
             cursor: pointer;
         }
         .lose-banner .lose-restart-btn:hover { background: #fef2f2; }
-        .gps-coords-list {
-            margin-top: 8px;
-            font-size: 11px;
-            color: #9ca3af;
-            max-height: 120px;
-            overflow-y: auto;
-            line-height: 1.35;
+        #gpsPanel {
+            position: fixed;
+            left: 12px;
+            right: 12px;
+            bottom: 12px;
+            z-index: 4;
+            border-radius: 14px;
+            padding: 10px 12px;
+            background: rgba(11, 15, 20, 0.62);
+            border: 1px solid rgba(255, 247, 214, 0.14);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.45);
+            backdrop-filter: blur(6px);
         }
-        .gps-coords-list div { margin-bottom: 2px; }
+        #gpsPanelTitle {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: baseline;
+            font-size: 12px;
+            color: rgba(255, 247, 214, 0.80);
+            margin-bottom: 8px;
+            letter-spacing: 0.2px;
+        }
+        #gpsCoordsList {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 6px 10px;
+            font-size: 11px;
+            color: rgba(255, 247, 214, 0.82);
+            line-height: 1.25;
+            max-height: 26vh;
+            overflow: auto;
+        }
+        #gpsCoordsList .row {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            opacity: 0.95;
+        }
         #controls {
             margin-top: 10px;
             display: flex;
@@ -157,14 +187,20 @@
     <video id="cameraBg" autoplay playsinline muted></video>
 
     <div id="overlay">
-        <div><b>Pizza Hunt AR</b></div>
-        <div id="timerTextDom">Время: 35</div>
-        <div id="scoreTextDom">Собрано: 0/15</div>
-        <div id="gpsCoordsList" class="gps-coords-list"></div>
+        <div id="timerTextDom">Время: 30</div>
+        <div id="scoreTextDom">Собрано: 0/10</div>
         <div id="controls">
             <button id="startGameBtn" class="ui-btn">Старт</button>
             <button id="restartGameBtn" class="ui-btn secondary">Сброс</button>
         </div>
+    </div>
+
+    <div id="gpsPanel">
+        <div id="gpsPanelTitle">
+            <div><b>Координаты объектов</b></div>
+            <div style="opacity:.85">GPS привязка: <span id="gpsAnchorText">ожидание…</span></div>
+        </div>
+        <div id="gpsCoordsList"></div>
     </div>
 
     <div id="winScreen" class="result-screen" style="display:none;">
@@ -228,7 +264,7 @@
             var sceneEl = document.querySelector('a-scene');
 
             var collected = 0;
-            var timeLeft = 35;
+            var timeLeft = 30;
             var timerId = null;
             var projectionTimer = null;
             var gameActive = false;
@@ -238,28 +274,21 @@
             var objectCoordsAnchor = null; // { latitude, longitude, source: 'placeholder' | 'gps' | 'fallback' }
             var objectLayout = null; // { [id]: { northM, eastM, y, scale } }
             var hitButtons = {};
-            var TOTAL_TARGETS = 15;
+            var TOTAL_TARGETS = 10;
             var assetsReady = true; // non-blocking: allow start immediately
+            var gpsAnchorText = document.getElementById('gpsAnchorText');
 
             var itemConfigs = [
-                { id: 'item01', label: 'Cheese', model: '#cheeseModel', scale: '0.46 0.46 0.46', y: 2.20, north: 12, east: 0, duration: 5000, isFake: false },
-                { id: 'item02', label: 'Box', model: '#pizzaBoxModel', scale: '0.76 0.76 0.76', y: 1.45, north: 10, east: 5, duration: 5200, isFake: false },
-                { id: 'item03', label: 'Tomato', model: '#tomatoModel', scale: '0.50 0.50 0.50', y: 2.00, north: 8, east: 10, duration: 5400, isFake: false },
-                { id: 'item04', label: 'Cheese', model: '#cheeseModel', scale: '0.62 0.62 0.62', y: 1.65, north: 3, east: 13, duration: 5600, isFake: false },
-                { id: 'item05', label: 'Tomato', model: '#tomatoModel', scale: '0.58 0.58 0.58', y: 2.35, north: -3, east: 13, duration: 5800, isFake: false },
-                { id: 'item06', label: 'Box', model: '#pizzaBoxModel', scale: '0.60 0.60 0.60', y: 1.55, north: -8, east: 10, duration: 6000, isFake: false },
-                { id: 'item07', label: 'Cheese', model: '#cheeseModel', scale: '0.54 0.54 0.54', y: 2.10, north: -10, east: 5, duration: 6200, isFake: false },
-                { id: 'item08', label: 'Tomato', model: '#tomatoModel', scale: '0.52 0.52 0.52', y: 1.75, north: -12, east: 0, duration: 6400, isFake: false },
-                { id: 'item09', label: 'Box', model: '#pizzaBoxModel', scale: '0.72 0.72 0.72', y: 2.25, north: -10, east: -5, duration: 6600, isFake: false },
-                { id: 'item10', label: 'Cheese', model: '#cheeseModel', scale: '0.60 0.60 0.60', y: 1.50, north: -8, east: -10, duration: 6800, isFake: false },
-                { id: 'item11', label: 'Tomato', model: '#tomatoModel', scale: '0.48 0.48 0.48', y: 2.05, north: -3, east: -13, duration: 7000, isFake: false },
-                { id: 'item12', label: 'Box', model: '#pizzaBoxModel', scale: '0.64 0.64 0.64', y: 1.70, north: 3, east: -13, duration: 7200, isFake: false },
-                { id: 'item13', label: 'Cheese', model: '#cheeseModel', scale: '0.70 0.70 0.70', y: 2.15, north: 8, east: -10, duration: 7400, isFake: false },
-                { id: 'item14', label: 'Tomato', model: '#tomatoModel', scale: '0.56 0.56 0.56', y: 1.60, north: 10, east: -5, duration: 7600, isFake: false },
-                { id: 'item15', label: 'Box', model: '#pizzaBoxModel', scale: '0.82 0.82 0.82', y: 2.30, north: 0, east: 16, duration: 7800, isFake: false },
-                { id: 'fake01', label: 'Garlic', model: '#garlicModel', scale: '0.5 0.5 0.5', y: 1.90, north: 5, east: 8, duration: 6000, isFake: true },
-                { id: 'fake02', label: 'Cabbage', model: '#cabbageModel', scale: '0.5 0.5 0.5', y: 2.05, north: -6, east: 12, duration: 6200, isFake: true },
-                { id: 'fake03', label: 'Pumpkin', model: '#pumpkinModel', scale: '0.5 0.5 0.5', y: 1.75, north: 7, east: -9, duration: 6400, isFake: true }
+                { id: 'item01', label: 'Cheese', model: '#cheeseModel', scale: '0.50 0.50 0.50', y: 2.20, north: 12, east: 0, duration: 5200 },
+                { id: 'item02', label: 'Box', model: '#pizzaBoxModel', scale: '0.78 0.78 0.78', y: 1.55, north: 10, east: 6, duration: 5400 },
+                { id: 'item03', label: 'Tomato', model: '#tomatoModel', scale: '0.54 0.54 0.54', y: 2.40, north: 8, east: 12, duration: 5600 },
+                { id: 'item04', label: 'Cheese', model: '#cheeseModel', scale: '0.64 0.64 0.64', y: 1.35, north: 3, east: 14, duration: 5800 },
+                { id: 'item05', label: 'Tomato', model: '#tomatoModel', scale: '0.58 0.58 0.58', y: 2.65, north: -3, east: 14, duration: 6000 },
+                { id: 'item06', label: 'Box', model: '#pizzaBoxModel', scale: '0.64 0.64 0.64', y: 1.45, north: -8, east: 11, duration: 6200 },
+                { id: 'item07', label: 'Cheese', model: '#cheeseModel', scale: '0.58 0.58 0.58', y: 2.25, north: -12, east: 3, duration: 6400 },
+                { id: 'item08', label: 'Tomato', model: '#tomatoModel', scale: '0.56 0.56 0.56', y: 1.90, north: -12, east: -5, duration: 6600 },
+                { id: 'item09', label: 'Box', model: '#pizzaBoxModel', scale: '0.72 0.72 0.72', y: 2.75, north: -6, east: -12, duration: 6800 },
+                { id: 'item10', label: 'Cheese', model: '#cheeseModel', scale: '0.62 0.62 0.62', y: 1.25, north: 6, east: -12, duration: 7000 }
             ];
 
             function metersToLat(meters) {
@@ -335,9 +364,11 @@
                         placed = { north: Math.cos(fallbackA) * fallbackR, east: Math.sin(fallbackA) * fallbackR, r: fallbackR };
                     }
 
-                    var yMin = isFake ? 1.2 : 0.8;
-                    var yMax = isFake ? 3.4 : 2.9;
-                    var y = yMin + Math.random() * (yMax - yMin);
+                    // Wider vertical spread so items don't look "on one shelf".
+                    var yMin = isFake ? 1.1 : 0.9;
+                    var yMax = isFake ? 4.8 : 4.2;
+                    var baseY = isFinite(parseFloat(config.y)) ? parseFloat(config.y) : ((yMin + yMax) / 2);
+                    var y = clamp(baseY + (Math.random() - 0.5) * 1.8, yMin, yMax);
 
                     var baseBoost = 1.45;
                     var distAtten = clamp(1.08 - (placed.r / 28), 0.78, 1.05);
@@ -434,14 +465,17 @@
 
             function updateGpsCoordsDisplay() {
                 if (!gpsCoordsList || !objectCoords) return;
+                if (gpsAnchorText && objectCoordsAnchor) {
+                    gpsAnchorText.textContent = objectCoordsAnchor.source + ': ' + objectCoordsAnchor.latitude.toFixed(5) + ', ' + objectCoordsAnchor.longitude.toFixed(5);
+                } else if (gpsAnchorText) {
+                    gpsAnchorText.textContent = 'ожидание…';
+                }
                 var html = [];
                 Object.keys(objectCoords).forEach(function (id) {
                     var c = objectCoords[id];
                     var config = itemConfigs.find(function (item) { return item.id === id; });
                     var name = config ? config.label : id;
-                    var off = objectLayout && objectLayout[id];
-                    var extra = off ? (' <span style="opacity:.75">(' + off.northM.toFixed(1) + 'm N, ' + off.eastM.toFixed(1) + 'm E)</span>') : '';
-                    html.push('<div>' + name + ': ' + c.latitude.toFixed(5) + ', ' + c.longitude.toFixed(5) + extra + '</div>');
+                    html.push('<div class="row">' + name + ': ' + c.latitude.toFixed(5) + ', ' + c.longitude.toFixed(5) + '</div>');
                 });
                 gpsCoordsList.innerHTML = html.join('');
             }
@@ -567,7 +601,7 @@
 
             function startGame() {
                 collected = 0;
-                timeLeft = 35;
+                timeLeft = 30;
                 gameActive = true;
                 if (timerId) clearInterval(timerId);
                 itemConfigs.forEach(function (config) {
@@ -601,17 +635,7 @@
                 while (el && (!el.classList || !el.classList.contains('collectible'))) el = el.parentNode;
                 if (!gameActive) return;
                 if (!el || el.getAttribute('data-collected') === 'true') return;
-                var config = itemConfigs.find(function (c) { return c.id === el.id; });
-                if (config && config.isFake) {
-                    playTone(180, 120);
-                    setTimeout(function () { playTone(140, 200); }, 130);
-                    el.setAttribute('data-collected', 'true');
-                    if (hitButtons[el.id]) hitButtons[el.id].classList.add('hidden');
-                    el.setAttribute('animation__shrink', 'property: scale; to: 0 0 0; dur: 250');
-                    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 260);
-                    finishGame(null, false, true);
-                    return;
-                }
+                // Simplified: no "fake" items; every item counts.
                 el.setAttribute('data-collected', 'true');
                 collected += 1;
                 updateHud();
