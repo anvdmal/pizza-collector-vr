@@ -252,13 +252,6 @@ function spawnIngredient(isBad){
   m.setAttribute('animation__spin', 'property: rotation; to: 0 360 0; dur: 3500; loop: true; easing: linear');
   el.appendChild(m);
 
-  var fallback = document.createElement('a-box');
-  fallback.setAttribute('position', '0 0 0');
-  fallback.setAttribute('geometry', 'primitive: box; width: 0.4; height: 0.4; depth: 0.4');
-  fallback.setAttribute('material', 'color: ' + (isBad ? '#e11d48' : '#16a34a') + '; transparent: true; opacity: 0.9');
-  fallback.setAttribute('animation__spin', 'property: rotation; to: 0 360 0; dur: 3500; loop: true; easing: linear');
-  el.appendChild(fallback);
-
   el.setAttribute('look-at', '#gps-cam');
 
   var handled = false;
@@ -311,8 +304,8 @@ function startGame(){
   updateHud();
 
   spawnIngredient(false);
-  spawnGood = setInterval(function(){ if (!gameOver) spawnIngredient(false); }, 2500);
-  spawnBad = setInterval(function(){ if (!gameOver) spawnIngredient(true); }, 4000);
+  spawnGood = setInterval(function(){ if (!gameOver) spawnIngredient(false); }, 1500);
+  spawnBad = setInterval(function(){ if (!gameOver) spawnIngredient(true); }, 3500);
 
   timerInt = setInterval(function(){
     timeLeft -= 1;
