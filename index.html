@@ -310,12 +310,9 @@ function startGame(){
   timeLeft  = 30;
   updateHud();
 
-  setTimeout(function(){
-    if (gameOver) return;
-    spawnIngredient(false);
-    spawnGood = setInterval(function(){ if (!gameOver) spawnIngredient(false); }, 2500);
-    spawnBad = setInterval(function(){ if (!gameOver) spawnIngredient(true); }, 4000);
-  }, 3500);
+  spawnIngredient(false);
+  spawnGood = setInterval(function(){ if (!gameOver) spawnIngredient(false); }, 2500);
+  spawnBad = setInterval(function(){ if (!gameOver) spawnIngredient(true); }, 4000);
 
   timerInt = setInterval(function(){
     timeLeft -= 1;
