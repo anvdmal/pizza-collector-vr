@@ -45,7 +45,6 @@
         }
         #overlay b { color: var(--pizza-cheese); }
 
-        /* Make the counters pop like a "pizza HUD" */
         #overlay #timerTextDom,
         #overlay #scoreTextDom {
             font-weight: 800;
@@ -180,7 +179,6 @@
             display: none;
         }
 
-        /* Loader banner removed: models load in background on Pages. */
     </style>
 </head>
 <body>
@@ -270,8 +268,8 @@
             var gpsReady = false;
             var userCoords = null;
             var objectCoords = null;
-            var objectCoordsAnchor = null; // { latitude, longitude, source: 'placeholder' | 'gps' | 'fallback' }
-            var objectLayout = null; // { [id]: { northM, eastM, y, scale } }
+            var objectCoordsAnchor = null;
+            var objectLayout = null;
             var hitButtons = {};
             var TOTAL_TARGETS = 10;
             var gpsAnchorText = document.getElementById('gpsAnchorText');
@@ -321,7 +319,7 @@
                 var n = itemConfigs.length;
                 var minR = 3.2;
                 var maxR = 18.0;
-                var minSep = 4.6; // meters between items
+                var minSep = 4.6;
                 var placements = [];
 
                 function tryPlace(angle, r) {
@@ -360,7 +358,6 @@
                         placed = { north: Math.cos(fallbackA) * fallbackR, east: Math.sin(fallbackA) * fallbackR, r: fallbackR };
                     }
 
-                    // Wider vertical spread so items don't look "on one shelf".
                     var yMin = 0.9;
                     var yMax = 4.5;
                     var baseY = isFinite(parseFloat(config.y)) ? parseFloat(config.y) : ((yMin + yMax) / 2);
@@ -368,7 +365,7 @@
 
                     var baseBoost = 1.45;
                     var distAtten = clamp(1.08 - (placed.r / 28), 0.78, 1.05);
-                    var rand = 0.92 + Math.random() * 0.28; // 0.92..1.20
+                    var rand = 0.92 + Math.random() * 0.28;
                     var scaleFactor = clamp(baseBoost * distAtten * rand, 1.10, 2.05);
 
                     layout[config.id] = {
@@ -631,7 +628,6 @@
                 while (el && (!el.classList || !el.classList.contains('collectible'))) el = el.parentNode;
                 if (!gameActive) return;
                 if (!el || el.getAttribute('data-collected') === 'true') return;
-                // Simplified: no "fake" items; every item counts.
                 el.setAttribute('data-collected', 'true');
                 collected += 1;
                 updateHud();
