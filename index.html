@@ -372,6 +372,14 @@ sceneEl.addEventListener('loaded', function(){
   canvas.addEventListener('click', onPointerTap, false);
   canvas.addEventListener('touchstart', function(e){ e.preventDefault(); onPointerTap(e); }, { passive:false });
 });
+
+window.addEventListener('load', function(){
+  setTimeout(function(){
+    if (!timerInt && !gameOver){
+      useFallback();
+    }
+  }, 5000);
+});
 </script>
 </body>
 </html>
