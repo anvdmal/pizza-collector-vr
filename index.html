@@ -229,7 +229,7 @@ function finishGame(win, reason){
 var spawnAngle = 0;
 function rndOffset(){
   spawnAngle += 1.2 + Math.random() * 0.8;
-  var dist = isMobile ? (1.5 + Math.random() * 3) / 111000 : (1 + Math.random() * 2) / 111000;
+  var dist = isMobile ? (0.4 + Math.random() * 1.2) / 111000 : (1 + Math.random() * 2) / 111000;
   return { lat: Math.cos(spawnAngle)*dist, lon: Math.sin(spawnAngle)*dist };
 }
 
@@ -309,13 +309,9 @@ function startGame(){
   timeLeft  = 30;
   updateHud();
 
-  var firstSpawnDelay = isMobile ? 1500 : 0;
-  setTimeout(function(){
-    if (gameOver) return;
-    spawnIngredient(false);
-    spawnGood = setInterval(function(){ if (!gameOver) spawnIngredient(false); }, 3000);
-    spawnBad = setInterval(function(){ if (!gameOver) spawnIngredient(true); }, 5000);
-  }, firstSpawnDelay);
+  spawnIngredient(false);
+  spawnGood = setInterval(function(){ if (!gameOver) spawnIngredient(false); }, 2500);
+  spawnBad = setInterval(function(){ if (!gameOver) spawnIngredient(true); }, 4000);
 
   timerInt = setInterval(function(){
     timeLeft -= 1;
