@@ -1,0 +1,8 @@
+{
+  "name": "self-care-collector",
+  "version": "1.0.0",
+  "description": "Мини-игра на A-Frame: сбор ингредиентов для пиццы",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

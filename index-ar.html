@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Pizza Hunt AR</title>
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; background: #000; }
+        #cameraBg {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            z-index: 0;
+            background: #000;
+        }
+        #overlay {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            z-index: 4;
+            background: rgba(17, 24, 39, 0.86);
+            color: #fff;
+            padding: 12px 14px;
+            border-radius: 12px;
+            max-width: 340px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        #overlay b { color: #ffd166; }
+        .result-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 10;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .result-content { text-align: center; color: #fff; }
+        .result-content img { max-width: 80vw; max-height: 50vh; }
+        .result-title { font-size: 2rem; font-weight: 700; color: #ffd166; margin: 16px 0 8px; }
+        .result-sub { font-size: 1.1rem; color: #d1d5db; }
+        .lose-banner {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            background: #b91c1c;
+            color: #fff;
+            font-size: 1.5rem;
+            font-weight: 700;
+            padding: 24px 48px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        .lose-banner .lose-restart-btn {
+            display: block;
+            margin-top: 20px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 10px;
+            background: #fff;
+            color: #b91c1c;
+            cursor: pointer;
+        }
+        .lose-banner .lose-restart-btn:hover { background: #fef2f2; }
+        .gps-coords-list {
+            margin-top: 8px;
+            font-size: 11px;
+            color: #9ca3af;
+            max-height: 120px;
+            overflow-y: auto;
+            line-height: 1.35;
+        }
+        .gps-coords-list div { margin-bottom: 2px; }
+        #controls {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .ui-btn {
+            border: none;
+            border-radius: 10px;
+            padding: 8px 12px;
+            font: 700 14px Arial, sans-serif;
+            cursor: pointer;
+            background: #ffd166;
+            color: #4b2e12;
+        }
+        .ui-btn.secondary {
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+        }
+        #hitLayer {
+            position: fixed;
+            inset: 0;
+            z-index: 3;
+            pointer-events: none;
+        }
+        .hitspot {
+            position: absolute;
+            width: 96px;
+            height: 96px;
+            border-radius: 999px;
+            border: none;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.18);
+            font: 700 14px Arial, sans-serif;
+            pointer-events: auto;
+            cursor: pointer;
+            box-shadow: none;
+            outline: none;
+            text-shadow: 0 0 8px rgba(0, 0, 0, 0.55);
+        }
+        .hitspot.hidden {
+            display: none;
+        }
+
+        #loadingBanner {
+            position: fixed;
+            inset: 0;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.78);
+            backdrop-filter: blur(6px);
+        }
+        #loadingCard {
+            width: min(520px, calc(100vw - 32px));
+            background: rgba(17, 24, 39, 0.92);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            padding: 18px 18px 16px;
+            color: #fff;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.55);
+        }
+        #loadingTitle {
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 0.2px;
+            color: #ffd166;
+            margin-bottom: 8px;
+        }
+        #loadingSub {
+            font-size: 13px;
+            color: #e5e7eb;
+            line-height: 1.35;
+            margin-bottom: 12px;
+        }
+        #loadingBarOuter {
+            height: 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.12);
+            overflow: hidden;
+        }
+        #loadingBarInner {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #ffd166, #f97316);
+            border-radius: 999px;
+            transition: width 180ms ease;
+        }
+        #loadingMeta {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+            align-items: baseline;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #d1d5db;
+        }
+        #loadingMeta b { color: #fff; }
+        #loadingMeta .err { color: #fecaca; }
+    </style>
+</head>
+<body>
+    <video id="cameraBg" autoplay playsinline muted></video>
+
+    <div id="loadingBanner">
+        <div id="loadingCard">
+            <div id="loadingTitle">Загрузка моделей…</div>
+            <div id="loadingSub">Игра начнётся, когда все объекты будут готовы.</div>
+            <div id="loadingBarOuter"><div id="loadingBarInner"></div></div>
+            <div id="loadingMeta">
+                <div id="loadingCount"><b>0</b>/<b>0</b></div>
+                <div id="loadingPct">0%</div>
+            </div>
+            <div id="loadingError" class="err" style="display:none; margin-top: 10px; font-size: 12px;"></div>
+        </div>
+    </div>
+
+    <div id="overlay">
+        <div><b>Pizza Hunt AR</b></div>
+        <div id="timerTextDom">Время: 35</div>
+        <div id="scoreTextDom">Собрано: 0/15</div>
+        <div id="gpsCoordsList" class="gps-coords-list"></div>
+        <div id="controls">
+            <button id="startGameBtn" class="ui-btn">Старт</button>
+            <button id="restartGameBtn" class="ui-btn secondary">Сброс</button>
+        </div>
+    </div>
+
+    <div id="winScreen" class="result-screen" style="display:none;">
+        <div class="result-content">
+            <img id="winPizzaImg" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Cellipse cx='200' cy='200' rx='180' ry='180' fill='%23f4a460' stroke='%23c85a2e' stroke-width='8'/%3E%3Cpath d='M200 40 L380 200 L200 360 L20 200 Z' fill='%23e76f51' stroke='%23c85a2e' stroke-width='4'/%3E%3Cpath d='M200 40 L200 200 L200 360' fill='none' stroke='%23c85a2e' stroke-width='3'/%3E%3Cpath d='M200 200 L20 200 L380 200' fill='none' stroke='%23c85a2e' stroke-width='3'/%3E%3Cpath d='M200 40 L80 320 L320 320' fill='none' stroke='%23c85a2e' stroke-width='3'/%3E%3Cpath d='M200 40 L320 80 L200 360' fill='none' stroke='%23c85a2e' stroke-width='3'/%3E%3Cpath d='M80 80 L200 360 L320 80' fill='none' stroke='%23c85a2e' stroke-width='3'/%3E%3Ccircle cx='200' cy='200' r='25' fill='%23ffd166'/%3E%3C/svg%3E" alt="Pizza">
+            <p class="result-title">Поздравляю!</p>
+            <p class="result-sub">Все ингредиенты собраны</p>
+        </div>
+    </div>
+    <div id="loseBanner" class="lose-banner" style="display:none;">
+        Вы проиграли
+        <button id="loseRestartBtn" class="lose-restart-btn">Начать заново</button>
+    </div>
+
+    <div id="hitLayer"></div>
+
+    <a-scene
+        embedded
+        vr-mode-ui="enabled: false"
+        renderer="alpha: true; antialias: true"
+        loading-screen="enabled: false"
+        style="position:fixed; inset:0; z-index:1; background: transparent;">
+
+        <a-assets timeout="25000">
+            <a-asset-item id="cheeseModel" src="pizza models/cheese.glb"></a-asset-item>
+            <a-asset-item id="pizzaBoxModel" src="pizza models/pizza box.glb"></a-asset-item>
+            <a-asset-item id="tomatoModel" src="pizza models/tomato.glb"></a-asset-item>
+            <a-asset-item id="garlicModel" src="pizza models/garlic.glb"></a-asset-item>
+            <a-asset-item id="cabbageModel" src="pizza models/cabbage.glb"></a-asset-item>
+            <a-asset-item id="pumpkinModel" src="pizza models/pumpkin.glb"></a-asset-item>
+        </a-assets>
+
+        <a-camera
+            id="arCamera"
+            position="0 1.6 0"
+            look-controls="enabled: true"
+            raycaster="objects: .clickable; far: 35"
+            cursor="rayOrigin: mouse; fuse: false">
+        </a-camera>
+
+        <a-entity id="worldRoot"></a-entity>
+
+        <a-light type="ambient" intensity="1.4" color="#ffffff"></a-light>
+        <a-light type="directional" intensity="1.2" color="#ffffff" position="-1 4 2"></a-light>
+        <a-light type="directional" intensity="0.5" color="#ffffff" position="2 2 -1"></a-light>
+    </a-scene>
+
+    <script>
+        (function () {
+            var video = document.getElementById('cameraBg');
+            var hitLayer = document.getElementById('hitLayer');
+            var worldRoot = document.getElementById('worldRoot');
+            var timerTextDom = document.getElementById('timerTextDom');
+            var scoreTextDom = document.getElementById('scoreTextDom');
+            var startGameBtn = document.getElementById('startGameBtn');
+            var restartGameBtn = document.getElementById('restartGameBtn');
+            var cameraEl = document.getElementById('arCamera');
+            var winScreen = document.getElementById('winScreen');
+            var loseBanner = document.getElementById('loseBanner');
+            var gpsCoordsList = document.getElementById('gpsCoordsList');
+            var loadingBanner = document.getElementById('loadingBanner');
+            var loadingBarInner = document.getElementById('loadingBarInner');
+            var loadingCount = document.getElementById('loadingCount');
+            var loadingPct = document.getElementById('loadingPct');
+            var loadingError = document.getElementById('loadingError');
+            var assetsEl = document.querySelector('a-assets');
+
+            var collected = 0;
+            var timeLeft = 35;
+            var timerId = null;
+            var projectionTimer = null;
+            var gameActive = false;
+            var gpsReady = false;
+            var userCoords = null;
+            var objectCoords = null;
+            var objectCoordsAnchor = null; // { latitude, longitude, source: 'placeholder' | 'gps' | 'fallback' }
+            var objectLayout = null; // { [id]: { northM, eastM, y, scale } }
+            var hitButtons = {};
+            var TOTAL_TARGETS = 15;
+            var assetsReady = false;
+
+            var itemConfigs = [
+                { id: 'item01', label: 'Cheese', model: '#cheeseModel', scale: '0.46 0.46 0.46', y: 2.20, north: 12, east: 0, duration: 5000, isFake: false },
+                { id: 'item02', label: 'Box', model: '#pizzaBoxModel', scale: '0.76 0.76 0.76', y: 1.45, north: 10, east: 5, duration: 5200, isFake: false },
+                { id: 'item03', label: 'Tomato', model: '#tomatoModel', scale: '0.50 0.50 0.50', y: 2.00, north: 8, east: 10, duration: 5400, isFake: false },
+                { id: 'item04', label: 'Cheese', model: '#cheeseModel', scale: '0.62 0.62 0.62', y: 1.65, north: 3, east: 13, duration: 5600, isFake: false },
+                { id: 'item05', label: 'Tomato', model: '#tomatoModel', scale: '0.58 0.58 0.58', y: 2.35, north: -3, east: 13, duration: 5800, isFake: false },
+                { id: 'item06', label: 'Box', model: '#pizzaBoxModel', scale: '0.60 0.60 0.60', y: 1.55, north: -8, east: 10, duration: 6000, isFake: false },
+                { id: 'item07', label: 'Cheese', model: '#cheeseModel', scale: '0.54 0.54 0.54', y: 2.10, north: -10, east: 5, duration: 6200, isFake: false },
+                { id: 'item08', label: 'Tomato', model: '#tomatoModel', scale: '0.52 0.52 0.52', y: 1.75, north: -12, east: 0, duration: 6400, isFake: false },
+                { id: 'item09', label: 'Box', model: '#pizzaBoxModel', scale: '0.72 0.72 0.72', y: 2.25, north: -10, east: -5, duration: 6600, isFake: false },
+                { id: 'item10', label: 'Cheese', model: '#cheeseModel', scale: '0.60 0.60 0.60', y: 1.50, north: -8, east: -10, duration: 6800, isFake: false },
+                { id: 'item11', label: 'Tomato', model: '#tomatoModel', scale: '0.48 0.48 0.48', y: 2.05, north: -3, east: -13, duration: 7000, isFake: false },
+                { id: 'item12', label: 'Box', model: '#pizzaBoxModel', scale: '0.64 0.64 0.64', y: 1.70, north: 3, east: -13, duration: 7200, isFake: false },
+                { id: 'item13', label: 'Cheese', model: '#cheeseModel', scale: '0.70 0.70 0.70', y: 2.15, north: 8, east: -10, duration: 7400, isFake: false },
+                { id: 'item14', label: 'Tomato', model: '#tomatoModel', scale: '0.56 0.56 0.56', y: 1.60, north: 10, east: -5, duration: 7600, isFake: false },
+                { id: 'item15', label: 'Box', model: '#pizzaBoxModel', scale: '0.82 0.82 0.82', y: 2.30, north: 0, east: 16, duration: 7800, isFake: false },
+                { id: 'fake01', label: 'Garlic', model: '#garlicModel', scale: '0.5 0.5 0.5', y: 1.90, north: 5, east: 8, duration: 6000, isFake: true },
+                { id: 'fake02', label: 'Cabbage', model: '#cabbageModel', scale: '0.5 0.5 0.5', y: 2.05, north: -6, east: 12, duration: 6200, isFake: true },
+                { id: 'fake03', label: 'Pumpkin', model: '#pumpkinModel', scale: '0.5 0.5 0.5', y: 1.75, north: 7, east: -9, duration: 6400, isFake: true }
+            ];
+
+            function metersToLat(meters) {
+                return meters / 111320;
+            }
+
+            function metersToLon(meters, lat) {
+                return meters / (111320 * Math.cos(lat * Math.PI / 180));
+            }
+
+            function clamp(n, min, max) {
+                return Math.max(min, Math.min(max, n));
+            }
+
+            function parseScaleVec3(scaleStr) {
+                var parts = (scaleStr || '').trim().split(/\s+/).map(parseFloat);
+                if (parts.length !== 3 || parts.some(function (v) { return !isFinite(v); })) return [1, 1, 1];
+                return parts;
+            }
+
+            function vec3ToScaleStr(v) {
+                return v[0].toFixed(3) + ' ' + v[1].toFixed(3) + ' ' + v[2].toFixed(3);
+            }
+
+            function mulScale(scaleStr, k) {
+                var v = parseScaleVec3(scaleStr);
+                return vec3ToScaleStr([v[0] * k, v[1] * k, v[2] * k]);
+            }
+
+            function generatePokemonGoLikeLayout() {
+                var layout = {};
+                var n = itemConfigs.length;
+                var minR = 3.2;
+                var maxR = 18.0;
+                var minSep = 4.6; // meters between items
+                var placements = [];
+
+                function tryPlace(angle, r) {
+                    var north = Math.cos(angle) * r;
+                    var east = Math.sin(angle) * r;
+                    for (var i = 0; i < placements.length; i++) {
+                        var dx = east - placements[i].east;
+                        var dz = north - placements[i].north;
+                        if ((dx * dx + dz * dz) < (minSep * minSep)) return null;
+                    }
+                    placements.push({ east: east, north: north });
+                    return { north: north, east: east, r: r };
+                }
+
+                for (var idx = 0; idx < n; idx++) {
+                    var config = itemConfigs[idx];
+                    var isFake = !!config.isFake;
+
+                    var arc = (Math.random() < 0.82) ? (220 * Math.PI / 180) : (360 * Math.PI / 180);
+                    var start = -arc / 2;
+                    var step = arc / Math.max(1, n - 1);
+                    var baseAngle = start + idx * step;
+
+                    var placed = null;
+                    for (var attempt = 0; attempt < 160 && !placed; attempt++) {
+                        var a = baseAngle + (Math.random() - 0.5) * 0.55;
+                        var r = minR + Math.random() * (maxR - minR);
+                        if (Math.random() < 0.22) r = clamp(r + 2.5 + Math.random() * 4.5, minR, maxR);
+                        placed = tryPlace(a, r);
+                        if (!placed && attempt > 60) {
+                            minSep = Math.max(3.4, minSep - 0.1);
+                        }
+                    }
+
+                    if (!placed) {
+                        var fallbackA = -Math.PI + (idx / Math.max(1, n)) * (2 * Math.PI);
+                        var fallbackR = clamp(minR + (idx % 5) * 1.8, minR, maxR);
+                        placed = { north: Math.cos(fallbackA) * fallbackR, east: Math.sin(fallbackA) * fallbackR, r: fallbackR };
+                    }
+
+                    var yMin = isFake ? 1.2 : 0.8;
+                    var yMax = isFake ? 3.4 : 2.9;
+                    var y = yMin + Math.random() * (yMax - yMin);
+
+                    var baseBoost = 1.45;
+                    var distAtten = clamp(1.08 - (placed.r / 28), 0.78, 1.05);
+                    var rand = 0.92 + Math.random() * 0.28; // 0.92..1.20
+                    var scaleFactor = clamp(baseBoost * distAtten * rand, 1.10, 2.05);
+
+                    layout[config.id] = {
+                        northM: placed.north,
+                        eastM: placed.east,
+                        y: y,
+                        scale: mulScale(config.scale, scaleFactor)
+                    };
+                }
+
+                return layout;
+            }
+
+            function createCollectibles() {
+                itemConfigs.forEach(function (config) {
+                    var entity = document.createElement('a-entity');
+                    entity.setAttribute('id', config.id);
+                    entity.setAttribute('class', 'collectible clickable');
+                    entity.setAttribute('data-collected', 'false');
+                    entity.setAttribute('position', '0 ' + config.y + ' -6');
+                    entity.setAttribute('data-y', String(config.y));
+                    entity.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: ' + config.duration + '; easing: linear');
+
+                    if (config.primitive) {
+                        var prim = document.createElement('a-' + config.primitive);
+                        prim.setAttribute('class', 'clickable');
+                        prim.setAttribute('position', '0 0 0');
+                        prim.setAttribute('scale', config.scale || '1 1 1');
+                        prim.setAttribute('material', 'color: ' + (config.color || '#888'));
+                        entity.appendChild(prim);
+                    } else {
+                        var model = document.createElement('a-entity');
+                        model.setAttribute('class', 'clickable');
+                        model.setAttribute('gltf-model', config.model);
+                        model.setAttribute('position', '0 0 0');
+                        model.setAttribute('scale', config.scale);
+                        model.setAttribute('data-base-scale', config.scale);
+                        entity.appendChild(model);
+                    }
+
+                    var hitbox = document.createElement('a-box');
+                    hitbox.setAttribute('class', 'clickable');
+                    hitbox.setAttribute('position', '0 0 0');
+                    hitbox.setAttribute('scale', '6 6 6');
+                    hitbox.setAttribute('material', 'transparent: true; opacity: 0; visible: true');
+                    hitbox.setAttribute('geometry', 'width: 1; height: 1; depth: 1');
+                    entity.appendChild(hitbox);
+
+                    worldRoot.appendChild(entity);
+
+                    var button = document.createElement('button');
+                    button.className = 'hitspot';
+                    button.id = 'hit-' + config.id;
+                    button.textContent = '';
+                    hitLayer.appendChild(button);
+                    hitButtons[config.id] = button;
+                });
+            }
+
+            function applyLayoutToEntities() {
+                if (!objectLayout) return;
+                itemConfigs.forEach(function (config) {
+                    var el = document.getElementById(config.id);
+                    if (!el) return;
+                    var layout = objectLayout[config.id];
+                    if (!layout) return;
+                    el.setAttribute('data-y', String(layout.y));
+                    var modelEl = el.querySelector('[gltf-model]');
+                    if (modelEl) modelEl.setAttribute('scale', layout.scale || modelEl.getAttribute('data-base-scale') || config.scale);
+                });
+            }
+
+            function ensureObjectCoords(lat, lon, source, force) {
+                if (objectCoords && !force) return;
+                if (!objectLayout || force) objectLayout = generatePokemonGoLikeLayout();
+                objectCoords = {};
+                itemConfigs.forEach(function (config) {
+                    var layout = objectLayout[config.id];
+                    var northM = layout ? layout.northM : config.north;
+                    var eastM = layout ? layout.eastM : config.east;
+                    objectCoords[config.id] = {
+                        latitude: lat + metersToLat(northM),
+                        longitude: lon + metersToLon(eastM, lat)
+                    };
+                });
+                objectCoordsAnchor = { latitude: lat, longitude: lon, source: source || 'placeholder' };
+                updateGpsCoordsDisplay();
+                applyLayoutToEntities();
+            }
+
+            function updateGpsCoordsDisplay() {
+                if (!gpsCoordsList || !objectCoords) return;
+                var html = [];
+                Object.keys(objectCoords).forEach(function (id) {
+                    var c = objectCoords[id];
+                    var config = itemConfigs.find(function (item) { return item.id === id; });
+                    var name = config ? config.label : id;
+                    var off = objectLayout && objectLayout[id];
+                    var extra = off ? (' <span style="opacity:.75">(' + off.northM.toFixed(1) + 'm N, ' + off.eastM.toFixed(1) + 'm E)</span>') : '';
+                    html.push('<div>' + name + ': ' + c.latitude.toFixed(5) + ', ' + c.longitude.toFixed(5) + extra + '</div>');
+                });
+                gpsCoordsList.innerHTML = html.join('');
+            }
+
+            function updateWorldPositions() {
+                if (!userCoords || !objectCoords) return;
+                var lat = userCoords.latitude;
+                var lon = userCoords.longitude;
+                var metersPerLon = 111320 * Math.cos(lat * Math.PI / 180);
+
+                Object.keys(objectCoords).forEach(function (id) {
+                    var target = objectCoords[id];
+                    var north = (target.latitude - lat) * 111320;
+                    var east = (target.longitude - lon) * metersPerLon;
+                    var el = document.getElementById(id);
+                    var config = itemConfigs.find(function (item) { return item.id === id; });
+                    if (!el || !config) return;
+                    var yStr = el.getAttribute('data-y');
+                    var y = isFinite(parseFloat(yStr)) ? parseFloat(yStr) : config.y;
+                    el.setAttribute('position', east.toFixed(2) + ' ' + y.toFixed(2) + ' ' + (-north).toFixed(2));
+                });
+            }
+
+            function updateHitspots() {
+                var camera = cameraEl && cameraEl.getObject3D('camera');
+                if (!camera) return;
+                var width = window.innerWidth;
+                var height = window.innerHeight;
+                var vector = new THREE.Vector3();
+
+                Object.keys(hitButtons).forEach(function (id) {
+                    var btn = hitButtons[id];
+                    var el = document.getElementById(id);
+                    if (!btn || !el || el.getAttribute('data-collected') === 'true') return;
+
+                    el.object3D.getWorldPosition(vector);
+                    vector.project(camera);
+
+                    var visible = vector.z < 1 && vector.z > -1 && vector.x >= -1.1 && vector.x <= 1.1 && vector.y >= -1.1 && vector.y <= 1.1;
+                    if (!visible) {
+                        btn.classList.add('hidden');
+                        return;
+                    }
+
+                    btn.style.left = ((vector.x * 0.5 + 0.5) * width - 48) + 'px';
+                    btn.style.top = ((-vector.y * 0.5 + 0.5) * height - 48) + 'px';
+                    if (gameActive) btn.classList.remove('hidden');
+                });
+            }
+
+            function playTone(freq, ms) {
+                var AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                if (!playTone.ctx) playTone.ctx = new AudioCtx();
+                var ctx = playTone.ctx;
+                if (ctx.state === 'suspended') ctx.resume();
+                var osc = ctx.createOscillator();
+                var gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                gain.gain.value = 0.04;
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                setTimeout(function () { osc.stop(); }, ms);
+            }
+
+            function startCamera() {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
+                    .then(function (stream) { video.srcObject = stream; })
+                    .catch(function () {});
+            }
+
+            function startGps() {
+                if (!navigator.geolocation) {
+                    userCoords = { latitude: 59.9343, longitude: 30.3351 };
+                    ensureObjectCoords(userCoords.latitude, userCoords.longitude, 'fallback', true);
+                    updateWorldPositions();
+                    return;
+                }
+                navigator.geolocation.watchPosition(function (pos) {
+                    userCoords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+                    var shouldReanchor = !objectCoordsAnchor || objectCoordsAnchor.source === 'placeholder';
+                    ensureObjectCoords(userCoords.latitude, userCoords.longitude, 'gps', shouldReanchor);
+                    updateWorldPositions();
+                    gpsReady = true;
+                }, function () {
+                    userCoords = { latitude: 59.9343, longitude: 30.3351 };
+                    var shouldReanchor = !objectCoordsAnchor || objectCoordsAnchor.source === 'placeholder';
+                    ensureObjectCoords(userCoords.latitude, userCoords.longitude, 'fallback', shouldReanchor);
+                    updateWorldPositions();
+                    gpsReady = true;
+                }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 });
+            }
+
+            function updateHud() {
+                timerTextDom.textContent = 'Время: ' + timeLeft;
+                scoreTextDom.textContent = 'Собрано: ' + collected + '/' + TOTAL_TARGETS;
+            }
+
+            function finishGame(message, isWin, isLose) {
+                gameActive = false;
+                if (timerId) clearInterval(timerId);
+                Object.keys(hitButtons).forEach(function (id) {
+                    hitButtons[id].classList.add('hidden');
+                });
+                if (isWin && winScreen) winScreen.style.display = 'flex';
+                if (isLose && loseBanner) loseBanner.style.display = 'block';
+            }
+
+            function resetCollectible(id) {
+                var el = document.getElementById(id);
+                if (!el) return;
+                el.setAttribute('data-collected', 'false');
+                el.setAttribute('visible', 'true');
+                el.setAttribute('scale', '1 1 1');
+            }
+
+            function playStartTone() {
+                playTone(520, 100);
+                setTimeout(function () { playTone(660, 150); }, 120);
+            }
+
+            function startGame() {
+                if (!assetsReady) return;
+                collected = 0;
+                timeLeft = 35;
+                gameActive = true;
+                if (timerId) clearInterval(timerId);
+                itemConfigs.forEach(function (config) {
+                    resetCollectible(config.id);
+                });
+                updateWorldPositions();
+
+                Object.keys(hitButtons).forEach(function (id) {
+                    hitButtons[id].classList.remove('hidden');
+                });
+
+                updateHud();
+                if (winScreen) winScreen.style.display = 'none';
+                if (loseBanner) loseBanner.style.display = 'none';
+
+                playStartTone();
+
+                timerId = setInterval(function () {
+                    if (!gameActive) return;
+                    timeLeft -= 1;
+                    updateHud();
+                    if (timeLeft <= 0) {
+                        var won = collected >= TOTAL_TARGETS;
+                        finishGame(null, won, !won);
+                    }
+                }, 1000);
+            }
+
+            function onCollect(evt) {
+                var el = evt.currentTarget || evt.target;
+                while (el && (!el.classList || !el.classList.contains('collectible'))) el = el.parentNode;
+                if (!gameActive) return;
+                if (!el || el.getAttribute('data-collected') === 'true') return;
+                var config = itemConfigs.find(function (c) { return c.id === el.id; });
+                if (config && config.isFake) {
+                    playTone(180, 120);
+                    setTimeout(function () { playTone(140, 200); }, 130);
+                    el.setAttribute('data-collected', 'true');
+                    if (hitButtons[el.id]) hitButtons[el.id].classList.add('hidden');
+                    el.setAttribute('animation__shrink', 'property: scale; to: 0 0 0; dur: 250');
+                    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 260);
+                    finishGame(null, false, true);
+                    return;
+                }
+                el.setAttribute('data-collected', 'true');
+                collected += 1;
+                updateHud();
+                playTone(880, 120);
+                if (hitButtons[el.id]) hitButtons[el.id].classList.add('hidden');
+                el.setAttribute('animation__shrink', 'property: scale; to: 0 0 0; dur: 250');
+                setTimeout(function () {
+                    if (el.parentNode) el.parentNode.removeChild(el);
+                }, 260);
+                if (collected >= TOTAL_TARGETS) {
+                    finishGame(null, true, false);
+                }
+            }
+
+            function setStartEnabled(enabled) {
+                if (!startGameBtn) return;
+                startGameBtn.disabled = !enabled;
+                startGameBtn.style.opacity = enabled ? '1' : '0.55';
+                startGameBtn.style.cursor = enabled ? 'pointer' : 'not-allowed';
+            }
+
+            function updateLoadingUi(loaded, total) {
+                var safeTotal = Math.max(0, total || 0);
+                var safeLoaded = Math.min(Math.max(0, loaded || 0), safeTotal || 0);
+                var pct = safeTotal ? Math.round((safeLoaded / safeTotal) * 100) : 0;
+
+                if (loadingBarInner) loadingBarInner.style.width = pct + '%';
+                if (loadingPct) loadingPct.textContent = pct + '%';
+                if (loadingCount) loadingCount.innerHTML = '<b>' + safeLoaded + '</b>/<b>' + safeTotal + '</b>';
+            }
+
+            function beginAssetLoadingGate() {
+                setStartEnabled(false);
+                assetsReady = false;
+                if (loadingBanner) loadingBanner.style.display = 'flex';
+
+                var items = assetsEl ? Array.prototype.slice.call(assetsEl.querySelectorAll('a-asset-item')) : [];
+                var total = items.length;
+                var loaded = 0;
+                var hadError = false;
+
+                updateLoadingUi(0, total);
+
+                if (!total) {
+                    assetsReady = true;
+                    setStartEnabled(true);
+                    if (loadingBanner) loadingBanner.style.display = 'none';
+                    return;
+                }
+
+                function onOneDone() {
+                    loaded += 1;
+                    updateLoadingUi(loaded, total);
+                    if (loaded >= total) {
+                        assetsReady = true;
+                        setStartEnabled(true);
+                        if (loadingBanner) loadingBanner.style.display = 'none';
+                        if (hadError && loadingError) {
+                            loadingError.style.display = 'none';
+                            loadingError.textContent = '';
+                        }
+                    }
+                }
+
+                items.forEach(function (it) {
+                    if (it.hasLoaded) {
+                        onOneDone();
+                        return;
+                    }
+                    it.addEventListener('loaded', onOneDone, { once: true });
+                    it.addEventListener('error', function (e) {
+                        hadError = true;
+                        if (loadingError) {
+                            loadingError.style.display = 'block';
+                            loadingError.textContent = 'Не удалось загрузить один из файлов модели. Проверьте, что все пути в <a-assets> корректны.';
+                        }
+                        onOneDone();
+                    }, { once: true });
+                });
+            }
+
+            createCollectibles();
+            userCoords = userCoords || { latitude: 59.9343, longitude: 30.3351 };
+            ensureObjectCoords(userCoords.latitude, userCoords.longitude, 'placeholder', true);
+            updateWorldPositions();
+
+            itemConfigs.forEach(function (config) {
+                var el = document.getElementById(config.id);
+                var btn = hitButtons[config.id];
+                if (el) el.addEventListener('click', onCollect);
+                if (btn && el) {
+                    btn.addEventListener('click', function () {
+                        onCollect({ currentTarget: el });
+                    });
+                }
+            });
+
+            startGameBtn.addEventListener('click', startGame);
+            restartGameBtn.addEventListener('click', function () {
+                window.location.reload();
+            });
+            var loseRestartBtn = document.getElementById('loseRestartBtn');
+            if (loseRestartBtn) {
+                loseRestartBtn.addEventListener('click', function () {
+                    window.location.reload();
+                });
+            }
+
+            beginAssetLoadingGate();
+            startCamera();
+            startGps();
+            updateHud();
+            projectionTimer = setInterval(updateHitspots, 100);
+        })();
+    </script>
+</body>
+</html>
