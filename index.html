@@ -1,413 +1,300 @@
-<!doctype html>
-<html lang="ru">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Pizza Hunt AR</title>
-    <meta http-equiv="refresh" content="0; url=./index-ar.html" />
-    <style>
-      body { margin: 0; font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-      .wrap { padding: 20px; }
-      a { color: #b45309; }
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <div>Если редирект не сработал, открой вручную: <a href="./index-ar.html">Pizza Hunt AR</a></div>
-    </div>
-  </body>
-</html>
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <meta charset="utf-8">
-    <title>AR Camera + GPS</title>
-    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <style>
-        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; background: #000; }
-        #cameraBg {
-            position: fixed;
-            inset: 0;
-            width: 100vw;
-            height: 100vh;
-            object-fit: cover;
-            z-index: 0;
-            background: #000;
-        }
-        #overlay {
-            position: fixed;
-            top: 12px;
-            left: 12px;
-            z-index: 4;
-            background: rgba(17, 24, 39, 0.86);
-            color: #fff;
-            padding: 12px 14px;
-            border-radius: 12px;
-            max-width: 320px;
-            font-size: 14px;
-            line-height: 1.4;
-        }
-        #overlay b { color: #ffd166; }
-        #status { margin-top: 6px; color: #d1d5db; }
-        #controls {
-            margin-top: 10px;
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        .ui-btn {
-            border: none;
-            border-radius: 10px;
-            padding: 8px 12px;
-            font: 700 14px Arial, sans-serif;
-            cursor: pointer;
-            background: #ffd166;
-            color: #4b2e12;
-        }
-        .ui-btn.secondary {
-            background: rgba(255, 255, 255, 0.12);
-            color: #fff;
-        }
-        #hitLayer {
-            position: fixed;
-            inset: 0;
-            z-index: 3;
-            pointer-events: none;
-        }
-        .hitspot {
-            position: absolute;
-            width: 96px;
-            height: 96px;
-            border-radius: 999px;
-            border: none;
-            background: transparent;
-            color: rgba(255, 255, 255, 0.18);
-            font: 700 14px Arial, sans-serif;
-            pointer-events: auto;
-            cursor: pointer;
-            box-shadow: none;
-            outline: none;
-            text-shadow: 0 0 8px rgba(0, 0, 0, 0.55);
-        }
-        .hitspot.hidden {
-            display: none;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+  <title>Pizza Hunt AR (GPS)</title>
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <script src="https://unpkg.com/aframe-look-at-component@1.0.0/dist/aframe-look-at-component.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+  <link rel="stylesheet" href="./style.css">
+  <style>
+    body{overflow:hidden;font-family:'Segoe UI',sans-serif;touch-action:none}
+    #ui{position:fixed;top:0;left:0;right:0;z-index:999;pointer-events:none}
+    #btns{display:flex;justify-content:center;gap:8px;padding:12px;pointer-events:auto}
+    .abtn{background:rgba(0,0,0,.8);color:#fff;border:2px solid rgba(255,200,80,.5);padding:10px 16px;border-radius:10px;font-size:13px;cursor:pointer;text-decoration:none;font-weight:bold}
+    #hud{text-align:center;background:rgba(60,30,0,.88);border:2px solid rgba(255,200,80,.4);border-radius:14px;padding:8px 26px;color:#FFD700;font-size:1.1em;font-weight:bold;display:inline-block;margin:0 auto;display:flex;justify-content:center;gap:12px}
+    #coords{text-align:center;font-size:12px;color:#fff;background:rgba(0,0,0,.6);padding:4px 10px;border-radius:6px;margin-top:4px;display:flex;justify-content:center}
+    #info{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:999;pointer-events:none;background:rgba(0,0,0,.78);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;max-width:92%;text-align:center}
+    #gps-wait{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:999;background:rgba(0,0,0,.85);color:#fff;padding:24px 32px;border-radius:14px;text-align:center;font-size:15px}
+    #result{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.85);justify-content:center;align-items:center;flex-direction:column;color:#FFD700;text-align:center;padding:20px}
+    #result.show{display:flex}
+    #result h2{font-size:1.8em;margin-bottom:12px}
+    #result .again{margin-top:20px;padding:12px 24px;font-size:16px;cursor:pointer;border-radius:10px;background:rgba(255,200,80,.3);border:2px solid #FFD700;color:#fff}
+    .fps{position:fixed;font-size:30px;font-weight:bold;pointer-events:none;z-index:999;animation:fup 1s ease-out forwards}
+    .fps.g{color:#FFD700;text-shadow:0 0 12px gold}.fps.b{color:#FF4444}
+    @keyframes fup{0%{opacity:1;transform:translateY(0) scale(1.2)}100%{opacity:0;transform:translateY(-70px) scale(.8)}}
+  </style>
 </head>
 <body>
-    <video id="cameraBg" autoplay playsinline muted></video>
 
-    <div id="overlay">
-        <div><b>AR.js + GPS демо</b></div>
-        <div>Цель: за 20 секунд собрать 3 объекта. Третий объект GPS откроется только после получения координат.</div>
-        <div id="gpsText">GPS: ожидание...</div>
-        <div id="timerTextDom">Время: 20</div>
-        <div id="scoreTextDom">Собрано: 0/3</div>
-        <div id="status">Статус: запуск...</div>
-        <div id="controls">
-            <button id="startGameBtn" class="ui-btn">Старт</button>
-            <button id="restartGameBtn" class="ui-btn secondary">Сброс</button>
-        </div>
+<div id="ui">
+  <div id="btns">
+    <span class="abtn" style="pointer-events:none;opacity:.9">Pizza Hunt AR (GPS)</span>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:0 12px 8px">
+    <div id="hud">
+      <span>Собрано: <span id="score-count">0</span>/10</span>
+      <span>Время: <span id="timer">30</span> с</span>
     </div>
+    <div id="coords">GPS: <span id="coord-val">определяем...</span></div>
+  </div>
+</div>
 
-    <div id="hitLayer">
-        <button id="hitPizza" class="hitspot">Pizza</button>
-        <button id="hitAr" class="hitspot">AR</button>
-        <button id="hitGps" class="hitspot hidden">GPS</button>
-    </div>
+<div id="info">Поверни телефон и ищи ингредиенты вокруг! Собери 10, но не трогай чеснок, капусту и тыкву.</div>
 
-    <a-scene
-        embedded
-        vr-mode-ui="enabled: false"
-        renderer="alpha: true; antialias: true"
-        style="position:fixed; inset:0; z-index:1; background: transparent;">
+<div id="gps-wait">
+  <div style="font-size:24px;margin-bottom:12px">Получение GPS...</div>
+  <div style="font-size:13px;opacity:0.8">Разреши доступ к геолокации.<br>Выйди на улицу для лучшего сигнала.</div>
+</div>
 
-        <a-camera
-            id="arCamera"
-            position="0 1.6 0"
-            look-controls="enabled: true"
-            raycaster="objects: .clickable; far: 20"
-            cursor="rayOrigin: mouse; fuse: false">
-        </a-camera>
+<div id="result">
+  <h2 id="result-title">Игра окончена</h2>
+  <p id="result-text"></p>
+  <button class="again" id="btn-again">Играть снова</button>
+</div>
 
-        <a-entity id="worldRoot">
-            <a-entity id="pizzaCollectible" class="collectible clickable" data-collected="false" position="-1 1.8 -6" animation="property: rotation; to: 0 360 0; loop: true; dur: 5000; easing: linear">
-                <a-triangle class="clickable" vertex-a="0 0.55 0.02" vertex-b="-0.35 -0.28 0.02" vertex-c="0.35 -0.28 0.02" color="#f4a261" material="side: double"></a-triangle>
-                <a-box class="clickable" position="0 -0.28 0.04" width="0.7" height="0.09" depth="0.1" color="#b5651d"></a-box>
-                <a-text class="clickable" value="Pizza" position="0 0.7 0.04" width="2" align="center" color="#fff"></a-text>
-            </a-entity>
+<a-scene
+  vr-mode-ui="enabled: false"
+  arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false;"
+  loading-screen="enabled: false">
 
-            <a-entity id="arCollectible" class="collectible clickable" data-collected="false" position="0 1.9 -7" animation="property: rotation; to: 0 360 0; loop: true; dur: 5200; easing: linear">
-                <a-box class="clickable" width="0.42" height="0.42" depth="0.42" color="#06d6a0"></a-box>
-                <a-text class="clickable" value="AR" position="0 0.55 0.04" width="2" align="center" color="#fff"></a-text>
-            </a-entity>
+  <a-assets timeout="15000">
+    <a-asset-item id="cheeseModel"  src="pizza%20models/cheese.glb"></a-asset-item>
+    <a-asset-item id="pizzaBoxModel" src="pizza%20models/pizza%20box.glb"></a-asset-item>
+    <a-asset-item id="tomatoModel"  src="pizza%20models/tomato.glb"></a-asset-item>
+    <a-asset-item id="garlicModel"  src="pizza%20models/garlic.glb"></a-asset-item>
+    <a-asset-item id="cabbageModel" src="pizza%20models/cabbage.glb"></a-asset-item>
+    <a-asset-item id="pumpkinModel" src="pizza%20models/pumpkin.glb"></a-asset-item>
+  </a-assets>
 
-            <a-entity id="gpsCollectible" class="collectible clickable" data-collected="false" position="1 1.8 -6" animation="property: rotation; to: 0 360 0; loop: true; dur: 5400; easing: linear">
-                <a-sphere id="gpsVisual" class="clickable" radius="0.24" color="#6b7280"></a-sphere>
-                <a-text class="clickable" value="GPS" position="0 0.5 0.04" width="2" align="center" color="#fff"></a-text>
-            </a-entity>
-        </a-entity>
+  <a-camera id="gps-cam" gps-camera rotation-reader></a-camera>
+</a-scene>
 
-        <a-light type="ambient" intensity="1.1" color="#ffffff"></a-light>
-        <a-light type="directional" intensity="0.8" color="#ffffff" position="-1 3 2"></a-light>
-    </a-scene>
+<script>
+var scoreEl  = document.getElementById('score-count');
+var timerEl  = document.getElementById('timer');
+var infoEl   = document.getElementById('info');
+var coordEl  = document.getElementById('coord-val');
+var gpsWait  = document.getElementById('gps-wait');
+var resultEl = document.getElementById('result');
+var resultTitle = document.getElementById('result-title');
+var resultText  = document.getElementById('result-text');
+var sceneEl = document.querySelector('a-scene');
 
-    <script>
-        (function () {
-            var video = document.getElementById('cameraBg');
-            var gpsText = document.getElementById('gpsText');
-            var timerTextDom = document.getElementById('timerTextDom');
-            var scoreTextDom = document.getElementById('scoreTextDom');
-            var status = document.getElementById('status');
-            var startGameBtn = document.getElementById('startGameBtn');
-            var restartGameBtn = document.getElementById('restartGameBtn');
-            var gpsVisual = document.getElementById('gpsVisual');
-            var cameraEl = document.getElementById('arCamera');
-            var collected = 0;
-            var timeLeft = 20;
-            var timerId = null;
-            var projectionTimer = null;
-            var gameActive = false;
-            var gpsReady = false;
-            var userCoords = null;
-            var objectCoords = null;
-            var hitButtons = {
-                pizzaCollectible: document.getElementById('hitPizza'),
-                arCollectible: document.getElementById('hitAr'),
-                gpsCollectible: document.getElementById('hitGps')
-            };
+var collected = 0;
+var timeLeft  = 30;
+var timerInt  = null;
+var spawnGood = null;
+var spawnBad  = null;
+var gameOver  = false;
 
-            function metersToLat(meters) {
-                return meters / 111320;
-            }
+var userLat = null, userLon = null;
+var DEFAULT_LAT = 55.7539, DEFAULT_LON = 37.6208;
 
-            function metersToLon(meters, lat) {
-                return meters / (111320 * Math.cos(lat * Math.PI / 180));
-            }
+var _actx;
+function ac(){ if(!_actx)_actx=new(window.AudioContext||window.webkitAudioContext)(); return _actx; }
+function beep(f,d,v){ try{ var c=ac(),o=c.createOscillator(),g=c.createGain(); o.connect(g);g.connect(c.destination); o.type='sine';o.frequency.value=f; g.gain.setValueAtTime(v||0.3,c.currentTime); g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d); o.start();o.stop(c.currentTime+d);}catch(e){} }
+function sndOk(){ beep(880,0.12,0.4); }
+function sndBad(){ beep(200,0.25,0.3); setTimeout(function(){beep(140,0.25,0.25);},140); }
 
-            function ensureObjectCoords(lat, lon) {
-                if (objectCoords) return;
-                objectCoords = {
-                    pizzaCollectible: {
-                        latitude: lat + metersToLat(7),
-                        longitude: lon + metersToLon(-2.5, lat)
-                    },
-                    arCollectible: {
-                        latitude: lat + metersToLat(9),
-                        longitude: lon + metersToLon(0, lat)
-                    },
-                    gpsCollectible: {
-                        latitude: lat + metersToLat(8),
-                        longitude: lon + metersToLon(2.8, lat)
-                    }
-                };
-            }
+function updateHud(){
+  scoreEl.textContent = collected;
+  timerEl.textContent = timeLeft;
+}
 
-            function updateWorldPositions() {
-                if (!userCoords || !objectCoords) return;
-                var lat = userCoords.latitude;
-                var lon = userCoords.longitude;
-                var metersPerLon = 111320 * Math.cos(lat * Math.PI / 180);
+function finishGame(win, reason){
+  if (gameOver) return;
+  gameOver = true;
+  clearInterval(timerInt);
+  clearInterval(spawnGood);
+  clearInterval(spawnBad);
+  var gpsEntities = sceneEl.querySelectorAll('a-entity[gps-entity-place]');
+  for (var i=0;i<gpsEntities.length;i++) gpsEntities[i].remove();
+  if (win){
+    resultTitle.textContent = 'Пицца готова!';
+    resultText.textContent  = 'Ты собрал(а) все 10 ингредиентов.';
+  } else {
+    resultTitle.textContent = 'Игра окончена';
+    resultText.textContent  = reason || 'Время вышло или попался плохой ингредиент.';
+  }
+  resultEl.classList.add('show');
+}
 
-                Object.keys(objectCoords).forEach(function (id) {
-                    var target = objectCoords[id];
-                    var north = (target.latitude - lat) * 111320;
-                    var east = (target.longitude - lon) * metersPerLon;
-                    var el = document.getElementById(id);
-                    if (!el) return;
-                    var x = east;
-                    var z = -north;
-                    var y = id === 'arCollectible' ? 1.95 : 1.8;
-                    el.setAttribute('position', x.toFixed(2) + ' ' + y + ' ' + z.toFixed(2));
-                });
-            }
+var spawnAngle = 0;
+function rndOffset(){
+  spawnAngle += 1.2 + Math.random()*0.8;
+  var dist = (3 + Math.random()*5) / 111000;
+  return { lat: Math.cos(spawnAngle)*dist, lon: Math.sin(spawnAngle)*dist };
+}
 
-            function updateHitspots() {
-                var camera = cameraEl && cameraEl.getObject3D('camera');
-                if (!camera) return;
-                var width = window.innerWidth;
-                var height = window.innerHeight;
-                var vector = new THREE.Vector3();
+function spawnIngredient(isBad){
+  if (!userLat || !userLon || gameOver) return;
+  var o = rndOffset();
+  var lat = userLat + o.lat;
+  var lon = userLon + o.lon;
 
-                Object.keys(hitButtons).forEach(function (id) {
-                    var btn = hitButtons[id];
-                    var el = document.getElementById(id);
-                    if (!btn || !el || el.getAttribute('data-collected') === 'true') return;
-                    if (id === 'gpsCollectible' && !gpsReady) return;
+  var el = document.createElement('a-entity');
+  el.setAttribute('look-at', '#gps-cam');
+  el.setAttribute('class', 'clickable');
+  el.setAttribute('scale', isBad ? '6 6 6' : '7.5 7.5 7.5');
 
-                    el.object3D.getWorldPosition(vector);
-                    vector.project(camera);
+  var modelsGood = ['#cheeseModel','#pizzaBoxModel','#tomatoModel'];
+  var modelsBad  = ['#garlicModel','#cabbageModel','#pumpkinModel'];
+  var modelId = isBad ? modelsBad[Math.floor(Math.random()*modelsBad.length)]
+                      : modelsGood[Math.floor(Math.random()*modelsGood.length)];
 
-                    var visible = vector.z < 1 && vector.z > -1 && vector.x >= -1.1 && vector.x <= 1.1 && vector.y >= -1.1 && vector.y <= 1.1;
-                    if (!visible) {
-                        btn.classList.add('hidden');
-                        return;
-                    }
+  var m = document.createElement('a-entity');
+  m.setAttribute('gltf-model', modelId);
+  el.appendChild(m);
 
-                    var screenX = (vector.x * 0.5 + 0.5) * width;
-                    var screenY = (-vector.y * 0.5 + 0.5) * height;
-                    btn.style.left = (screenX - 48) + 'px';
-                    btn.style.top = (screenY - 48) + 'px';
-                    if (gameActive && !(id === 'gpsCollectible' && !gpsReady)) {
-                        btn.classList.remove('hidden');
-                    }
-                });
-            }
+  el.setAttribute('animation__spin','property:rotation; to:0 360 0; dur:3500; loop:true; easing:linear');
 
-            function playTone(freq, ms) {
-                var AudioCtx = window.AudioContext || window.webkitAudioContext;
-                if (!AudioCtx) return;
-                if (!playTone.ctx) playTone.ctx = new AudioCtx();
-                var ctx = playTone.ctx;
-                if (ctx.state === 'suspended') ctx.resume();
-                var osc = ctx.createOscillator();
-                var gain = ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.value = freq;
-                gain.gain.value = 0.04;
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start();
-                setTimeout(function () { osc.stop(); }, ms);
-            }
+  var handled = false;
+  el.addEventListener('click', function(){
+    if (handled || gameOver) return;
+    handled = true;
+    if (isBad){
+      sndBad();
+      infoEl.textContent = 'Плохой ингредиент! (чеснок/тыква/капуста)';
+      finishGame(false, 'Плохой ингредиент.');
+    } else {
+      collected += 1;
+      sndOk();
+      infoEl.textContent = 'Собрано: ' + collected + '/10';
+      updateHud();
+      if (collected >= 10){
+        finishGame(true);
+      }
+    }
+    el.setAttribute('animation__die','property:scale; to:0 0 0; dur:260; easing:easeInBack');
+    setTimeout(function(){ if(el.parentNode) el.remove(); }, 280);
+  });
 
-            function startCamera() {
-                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
-                    .then(function (stream) {
-                        video.srcObject = stream;
-                        status.textContent = 'Статус: камера включена';
-                    })
-                    .catch(function () {
-                        status.textContent = 'Статус: камера недоступна, но GPS/AR сцена загружена';
-                    });
-            }
+  sceneEl.appendChild(el);
+  el.setAttribute('gps-entity-place','latitude:'+lat+'; longitude:'+lon+';');
+  if (el.components['gps-entity-place'] && el.components['gps-entity-place']._updatePosition){
+    el.components['gps-entity-place']._updatePosition();
+  }
+  setTimeout(function(){ if(!handled && el.parentNode) el.remove(); }, isBad ? 12000 : 9000);
+}
 
-            function startGps() {
-                if (!navigator.geolocation) {
-                    gpsText.textContent = 'GPS: геолокация не поддерживается';
-                    userCoords = { latitude: 59.9343, longitude: 30.3351 };
-                    ensureObjectCoords(userCoords.latitude, userCoords.longitude);
-                    updateWorldPositions();
-                    return;
-                }
-                navigator.geolocation.watchPosition(function (pos) {
-                    userCoords = {
-                        latitude: pos.coords.latitude,
-                        longitude: pos.coords.longitude
-                    };
-                    ensureObjectCoords(userCoords.latitude, userCoords.longitude);
-                    updateWorldPositions();
-                    gpsReady = true;
-                    gpsText.textContent = 'GPS: ' + pos.coords.latitude.toFixed(5) + ', ' + pos.coords.longitude.toFixed(5);
-                    gpsVisual.setAttribute('color', '#ef476f');
-                    if (gameActive && hitButtons.gpsCollectible) hitButtons.gpsCollectible.classList.remove('hidden');
-                    if (gameActive) status.textContent = 'Статус: GPS получен, можно собирать третий объект';
-                }, function () {
-                    gpsText.textContent = 'GPS: используется тестовая координата 59.93430, 30.33510';
-                    userCoords = { latitude: 59.9343, longitude: 30.3351 };
-                    ensureObjectCoords(userCoords.latitude, userCoords.longitude);
-                    updateWorldPositions();
-                    gpsReady = true;
-                    gpsVisual.setAttribute('color', '#ef476f');
-                    if (gameActive && hitButtons.gpsCollectible) hitButtons.gpsCollectible.classList.remove('hidden');
-                }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 });
-            }
+function startGame(){
+  if (gameOver || !userLat || !userLon) return;
+  gpsWait.style.display = 'none';
+  infoEl.textContent = 'Ищи ингредиенты вокруг! 10 хороших — победа. Плохие = проигрыш.';
+  collected = 0;
+  timeLeft  = 30;
+  updateHud();
 
-            function updateHud() {
-                timerTextDom.textContent = 'Время: ' + timeLeft;
-                scoreTextDom.textContent = 'Собрано: ' + collected + '/3';
-            }
+  spawnIngredient(false);
+  spawnGood = setInterval(function(){ if (!gameOver) spawnIngredient(false); }, 3000);
+  spawnBad  = setInterval(function(){ if (!gameOver) spawnIngredient(true);  }, 6500);
 
-            function finishGame(message) {
-                gameActive = false;
-                if (timerId) clearInterval(timerId);
-                status.textContent = message;
-                Object.keys(hitButtons).forEach(function (id) {
-                    hitButtons[id].classList.add('hidden');
-                });
-            }
+  timerInt = setInterval(function(){
+    if (gameOver) return;
+    timeLeft -= 1;
+    updateHud();
+    if (timeLeft <= 0){
+      finishGame(collected >= 10, collected >= 10 ? null : 'Время вышло. Собрано '+collected+' из 10.');
+    }
+  },1000);
+}
 
-            function resetCollectible(id) {
-                var el = document.getElementById(id);
-                if (!el) return;
-                el.setAttribute('data-collected', 'false');
-                el.setAttribute('visible', 'true');
-                el.setAttribute('scale', '1 1 1');
-            }
+document.getElementById('btn-again').addEventListener('click', function(){
+  resultEl.classList.remove('show');
+  gameOver = false;
+  collected = 0;
+  timeLeft  = 30;
+  updateHud();
+  if (sceneEl){
+    var list = sceneEl.querySelectorAll('a-entity[gps-entity-place]');
+    for (var i=0;i<list.length;i++) list[i].remove();
+  }
+  startGame();
+});
 
-            function startGame() {
-                collected = 0;
-                timeLeft = 20;
-                gameActive = true;
-                if (timerId) clearInterval(timerId);
-                resetCollectible('pizzaCollectible');
-                resetCollectible('arCollectible');
-                resetCollectible('gpsCollectible');
-                if (gpsVisual) gpsVisual.setAttribute('color', gpsReady ? '#ef476f' : '#6b7280');
-                updateWorldPositions();
+function setCoords(lat, lon, demo){
+  userLat = lat;
+  userLon = lon;
+  coordEl.textContent = lat.toFixed(5)+', '+lon.toFixed(5)+(demo ? ' (демо)' : '');
+  if (!timerInt && !gameOver) startGame();
+}
 
-                hitButtons.pizzaCollectible.classList.remove('hidden');
-                hitButtons.arCollectible.classList.remove('hidden');
-                if (gpsReady) hitButtons.gpsCollectible.classList.remove('hidden');
-                else hitButtons.gpsCollectible.classList.add('hidden');
+function useFallback(){
+  if (userLat && userLon) return;
+  infoEl.textContent = 'GPS недоступен — используем демо-координаты (Москва).';
+  var cam = document.getElementById('gps-cam');
+  if (cam && cam.components['gps-camera']){
+    cam.setAttribute('gps-camera','simulateLatitude:'+DEFAULT_LAT+'; simulateLongitude:'+DEFAULT_LON+';');
+  }
+  setCoords(DEFAULT_LAT, DEFAULT_LON, true);
+}
 
-                updateHud();
-                status.textContent = gpsReady
-                    ? 'Статус: игра началась, собери все 3 объекта'
-                    : 'Статус: игра началась, ждем GPS для третьего объекта';
+window.addEventListener('gps-camera-update-position', function(e){
+  setCoords(e.detail.position.latitude, e.detail.position.longitude, false);
+});
 
-                timerId = setInterval(function () {
-                    if (!gameActive) return;
-                    timeLeft -= 1;
-                    updateHud();
-                    if (timeLeft <= 0) {
-                        finishGame(collected >= 3 ? 'Победа: все объекты собраны' : 'Время вышло: собрано ' + collected + ' из 3');
-                    }
-                }, 1000);
-            }
+if (navigator.geolocation){
+  navigator.geolocation.watchPosition(
+    function(pos){ setCoords(pos.coords.latitude,pos.coords.longitude,false); },
+    function(){ useFallback(); },
+    {enableHighAccuracy:true, timeout:10000}
+  );
+} else {
+  useFallback();
+}
 
-            function onCollect(evt) {
-                var el = evt.currentTarget || evt.target;
-                while (el && (!el.classList || !el.classList.contains('collectible'))) el = el.parentNode;
-                if (!gameActive) return;
-                if (!el || el.getAttribute('data-collected') === 'true') return;
-                if (el.id === 'gpsCollectible' && !gpsReady) return;
-                el.setAttribute('data-collected', 'true');
-                collected += 1;
-                updateHud();
-                playTone(880, 120);
-                if (hitButtons[el.id]) hitButtons[el.id].classList.add('hidden');
-                el.setAttribute('animation__shrink', 'property: scale; to: 0 0 0; dur: 250');
-                setTimeout(function () {
-                    if (el.parentNode) el.parentNode.removeChild(el);
-                }, 260);
-                if (collected >= 3) {
-                    finishGame('Победа: все 3 AR-объекта собраны');
-                }
-            }
+setTimeout(function(){ if(!userLat || !userLon) useFallback(); }, 12000);
 
-            ['pizzaCollectible', 'arCollectible', 'gpsCollectible'].forEach(function (id) {
-                var el = document.getElementById(id);
-                if (el) el.addEventListener('click', onCollect);
-            });
-            Object.keys(hitButtons).forEach(function (id) {
-                var btn = hitButtons[id];
-                var el = document.getElementById(id);
-                if (!btn || !el) return;
-                btn.addEventListener('click', function () {
-                    onCollect({ currentTarget: el });
-                });
-            });
-            startGameBtn.addEventListener('click', startGame);
-            restartGameBtn.addEventListener('click', function () {
-                window.location.reload();
-            });
-            startCamera();
-            startGps();
-            updateHud();
-            status.textContent = 'Статус: нажми Старт';
-            projectionTimer = setInterval(updateHitspots, 100);
-        })();
-    </script>
+sceneEl.addEventListener('loaded', function(){
+  var canvas  = this.canvas;
+  var scene3d = this.object3D;
+  var raycaster   = new THREE.Raycaster();
+  var pointerNDC  = new THREE.Vector2();
+
+  function getPointerCoords(evt){
+    var x = (evt.touches && evt.touches[0]) ? evt.touches[0].clientX : evt.clientX;
+    var y = (evt.touches && evt.touches[0]) ? evt.touches[0].clientY : evt.clientY;
+    return { x: x || 0, y: y || 0 };
+  }
+
+  function toNDC(screenX, screenY){
+    var rect = canvas.getBoundingClientRect();
+    pointerNDC.x = (screenX - rect.left) / rect.width * 2 - 1;
+    pointerNDC.y = -(screenY - rect.top) / rect.height * 2 + 1;
+  }
+
+  function findClickableEntity(obj){
+    while (obj){
+      if (obj.el && obj.el.classList && obj.el.classList.contains('clickable')) return obj.el;
+      obj = obj.parent;
+    }
+    return null;
+  }
+
+  function onPointerTap(evt){
+    var coords = getPointerCoords(evt);
+    toNDC(coords.x, coords.y);
+
+    var camEl = document.querySelector('[camera]');
+    if (!camEl || !camEl.components || !camEl.components.camera) return;
+    var threeCamera = camEl.components.camera.camera;
+
+    raycaster.setFromCamera(pointerNDC, threeCamera);
+    var hits = raycaster.intersectObject(scene3d, true);
+    for (var i=0;i<hits.length;i++){
+      var entity = findClickableEntity(hits[i].object);
+      if (entity){
+        entity.dispatchEvent(new MouseEvent('click', { bubbles:true }));
+        return;
+      }
+    }
+  }
+
+  canvas.addEventListener('click', onPointerTap, false);
+  canvas.addEventListener('touchstart', function(e){ e.preventDefault(); onPointerTap(e); }, { passive:false });
+});
+</script>
 </body>
 </html>
