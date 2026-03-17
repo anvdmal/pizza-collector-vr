@@ -142,9 +142,9 @@
             function generatePokemonGoLikeLayout() {
                 var layout = {};
                 var n = itemConfigs.length;
-                var minR = 3.2;
-                var maxR = 18.0;
-                var minSep = 4.6;
+                var minR = 2.2;
+                var maxR = 9.0;
+                var minSep = 2.9;
                 var placements = [];
 
                 function tryPlace(angle, r) {
@@ -188,10 +188,10 @@
                     var baseY = isFinite(parseFloat(config.y)) ? parseFloat(config.y) : ((yMin + yMax) / 2);
                     var y = clamp(baseY + (Math.random() - 0.5) * 1.8, yMin, yMax);
 
-                    var baseBoost = 1.45;
-                    var distAtten = clamp(1.08 - (placed.r / 28), 0.78, 1.05);
+                    var baseBoost = 1.85;
+                    var distAtten = clamp(1.14 - (placed.r / 18), 0.82, 1.12);
                     var rand = 0.92 + Math.random() * 0.28;
-                    var scaleFactor = clamp(baseBoost * distAtten * rand, 1.10, 2.05);
+                    var scaleFactor = clamp(baseBoost * distAtten * rand, 1.35, 2.80);
 
                     layout[config.id] = {
                         northM: placed.north,
