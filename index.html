@@ -59,15 +59,20 @@
       overflow:hidden;
       text-overflow:ellipsis;
     }
-    #info{
-      position:fixed;left:12px;right:12px;bottom:12px;z-index:999;
+    #rules{
       pointer-events:none;
-      background:rgba(11,15,20,.62);
-      border:1px solid rgba(255,247,214,.14);
+      font-size:12px;
+      line-height:1.25;
+      opacity:.90;
       color:rgba(255,247,214,.92);
-      box-shadow:0 10px 40px rgba(0,0,0,.45);
-      backdrop-filter:blur(6px);
-      padding:10px 12px;border-radius:14px;font-size:13px;line-height:1.25;
+    }
+    #rules b{ color: var(--cheese); }
+    #info{
+      pointer-events:none;
+      font-size:12px;
+      line-height:1.2;
+      opacity:.72;
+      color:rgba(255,247,214,.9);
     }
     #gps-wait{
       position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
@@ -106,10 +111,10 @@
       <span><span class="k">Время</span> <span class="v"><span id="timer">30</span>с</span></span>
     </div>
     <div id="coords"><span style="opacity:.9">Местоположение:</span> <span id="coord-val">определяем…</span></div>
+    <div id="rules">Правила: собери <b>10</b> ингредиентов за <b>30</b> секунд. Опасные — <b>чеснок</b>, <b>капуста</b>, <b>тыква</b>.</div>
+    <div id="info">Статус: подготовка…</div>
   </div>
 </div>
-
-<div id="info">Собери 10 ингредиентов за 30 секунд. Опасные: чеснок, капуста, тыква.</div>
 
 <div id="gps-wait">
   <div class="t">Ищем тебя на карте…</div>
@@ -250,7 +255,7 @@ function spawnIngredient(isBad){
 function startGame(){
   if (gameOver || !userLat || !userLon) return;
   gpsWait.style.display = 'none';
-  infoEl.textContent = 'Ищи ингредиенты вокруг! 10 хороших — победа. Плохие = проигрыш.';
+  infoEl.textContent = 'Статус: игра началась';
   collected = 0;
   timeLeft  = 30;
   updateHud();
