@@ -211,13 +211,10 @@ function spawnIngredient(isBad){
   var el = document.createElement('a-entity');
   el.setAttribute('look-at', '#gps-cam');
   el.setAttribute('class', 'clickable');
-  // после пересохранения моделей делаем умеренный масштаб
-  el.setAttribute('scale', isBad ? '0.6 0.6 0.6' : '0.8 0.8 0.8');
+  // для отладки оставляем только сыр, без плохих ингредиентов
+  el.setAttribute('scale', '0.8 0.8 0.8');
 
-  var modelsGood = ['#cheeseModel','#pizzaBoxModel','#tomatoModel'];
-  var modelsBad  = ['#garlicModel','#cabbageModel','#pumpkinModel'];
-  var modelId = isBad ? modelsBad[Math.floor(Math.random()*modelsBad.length)]
-                      : modelsGood[Math.floor(Math.random()*modelsGood.length)];
+  var modelId = '#cheeseModel';
 
   var m = document.createElement('a-entity');
   m.setAttribute('gltf-model', modelId);
@@ -229,18 +226,12 @@ function spawnIngredient(isBad){
   el.addEventListener('click', function(){
     if (handled || gameOver) return;
     handled = true;
-    if (isBad){
-      sndBad();
-      infoEl.textContent = 'Ой. Это было лишнее.';
-      finishGame(false, 'Ты собрал(а) опасный ингредиент.');
-    } else {
-      collected += 1;
-      sndOk();
-      infoEl.textContent = 'Собрано: ' + collected + '/10';
-      updateHud();
-      if (collected >= 10){
-        finishGame(true);
-      }
+    collected += 1;
+    sndOk();
+    infoEl.textContent = 'Собрано: ' + collected + '/10';
+    updateHud();
+    if (collected >= 10){
+      finishGame(true);
     }
     el.setAttribute('animation__die','property:scale; to:0 0 0; dur:260; easing:easeInBack');
     setTimeout(function(){ if(el.parentNode) el.remove(); }, 280);
@@ -267,7 +258,7 @@ function startGame(){
     spawnIngredient(false);
   }
   spawnGood = setInterval(function(){ if (!gameOver) spawnIngredient(false); }, 3200);
-  spawnBad  = setInterval(function(){ if (!gameOver) spawnIngredient(true);  }, 6500);
+  // временно отключаем спавн плохих ингредиентов
 
   timerInt = setInterval(function(){
     if (gameOver) return;
