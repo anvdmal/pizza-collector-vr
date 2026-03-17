@@ -124,11 +124,11 @@
 </div>
 
 <div id="gps-wait">
-  <div class="t">Нужна геолокация</div>
-  <div class="s">Нажми кнопку — браузер запросит доступ к местоположению (для AR по GPS).</div>
-  <button type="button" id="btn-request-geo" class="geo-btn">Разрешить геолокацию</button>
+  <div class="t">Разрешения для AR</div>
+  <div class="s">Нажми кнопку — браузер запросит <b>камеру</b> и <b>геолокацию</b>. После обоих разрешений появится кнопка Старт.</div>
+  <button type="button" id="btn-request-geo" class="geo-btn">Разрешить камеру и геолокацию</button>
   <div id="ready-block" style="display:none;">
-    <div class="s">Всё готово. Разрешения даны. Нажми Старт — начнётся таймер и игра.</div>
+    <div class="s">Камера и геолокация включены. Нажми Старт — начнётся таймер и игра.</div>
     <button type="button" id="btn-start-game" class="geo-btn start-btn">Старт</button>
   </div>
 </div>
@@ -189,6 +189,7 @@ var MODEL_TITLES = {
 };
 
 var userLat = null, userLon = null;
+var cameraReady = false;
 var DEFAULT_LAT = 55.7539, DEFAULT_LON = 37.6208;
 
 var _actx;
@@ -240,7 +241,7 @@ function spawnIngredient(isBad){
   var el = document.createElement('a-entity');
   el.setAttribute('position', '0 2 0');
   el.setAttribute('class', 'clickable');
-  el.setAttribute('scale', '1.2 1.2 1.2');
+  el.setAttribute('scale', '0.4 0.4 0.4');
 
   var pool = isBad ? BAD_MODELS : GOOD_MODELS;
   var modelId = pool[Math.floor(Math.random() * pool.length)];
@@ -343,7 +344,7 @@ function setCoords(lat, lon, demo){
   userLat = lat;
   userLon = lon;
   coordEl.textContent = lat.toFixed(5)+', '+lon.toFixed(5)+(demo ? ' (демо)' : '');
-  if (!gameStarted) showStartButton();
+  if (!gameStarted && cameraReady) showStartButton();
 }
 
 function useFallback(){
@@ -361,29 +362,49 @@ window.addEventListener('gps-camera-update-position', function(e){
 });
 
 function showStartButton(){
+  if (!cameraReady || userLat == null || userLon == null) return;
   var readyBlock = document.getElementById('ready-block');
   var btnGeo = document.getElementById('btn-request-geo');
   if (readyBlock){ readyBlock.style.display = 'block'; }
   if (btnGeo){ btnGeo.style.display = 'none'; }
   document.querySelector('#gps-wait .t').textContent = 'Готово к старту';
-  document.querySelector('#gps-wait .s').textContent = '';
+  var s = document.querySelector('#gps-wait > .s');
+  if (s) s.textContent = '';
 }
 
 function startWatchingGeo(){
-  if (!navigator.geolocation){
-    useFallback();
-    return;
-  }
-  document.querySelector('#gps-wait .t').textContent = 'Ищем тебя на карте…';
-  document.querySelector('#gps-wait .s').textContent = 'Разреши доступ к местоположению.';
   var btn = document.getElementById('btn-request-geo');
   if (btn) btn.style.display = 'none';
+  document.querySelector('#gps-wait .t').textContent = 'Запрашиваем камеру…';
+  document.querySelector('#gps-wait .s').textContent = 'Разреши доступ к камере.';
 
-  navigator.geolocation.watchPosition(
-    function(pos){ setCoords(pos.coords.latitude, pos.coords.longitude, false); },
-    function(){ useFallback(); },
-    {enableHighAccuracy: true, timeout: 10000, maximumAge: 0}
-  );
+  function onCameraOk(){
+    cameraReady = true;
+    document.querySelector('#gps-wait .t').textContent = 'Ищем тебя на карте…';
+    document.querySelector('#gps-wait .s').textContent = 'Разреши доступ к местоположению.';
+    if (userLat != null && userLon != null) { showStartButton(); return; }
+    if (!navigator.geolocation){ useFallback(); return; }
+    navigator.geolocation.watchPosition(
+      function(pos){ setCoords(pos.coords.latitude, pos.coords.longitude, false); },
+      function(){ useFallback(); },
+      {enableHighAccuracy: true, timeout: 10000, maximumAge: 0}
+    );
+  }
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    cameraReady = true;
+    document.querySelector('#gps-wait .s').textContent = 'Камера не поддерживается, запрашиваю геолокацию…';
+    if (!navigator.geolocation){ useFallback(); return; }
+    navigator.geolocation.watchPosition(
+      function(pos){ setCoords(pos.coords.latitude, pos.coords.longitude, false); },
+      function(){ useFallback(); },
+      {enableHighAccuracy: true, timeout: 10000, maximumAge: 0}
+    );
+    return;
+  }
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then(function(stream){ stream.getTracks().forEach(function(t){ t.stop(); }); onCameraOk(); })
+    .catch(function(){ document.querySelector('#gps-wait .s').textContent = 'Камера отклонена. Запрашиваю геолокацию…'; cameraReady = true; onCameraOk(); });
 }
 
 var btnStartGame = document.getElementById('btn-start-game');
