@@ -242,7 +242,7 @@ function spawnIngredient(isBad){
   var el = document.createElement('a-entity');
   el.setAttribute('position', '0 2 0');
   el.setAttribute('class', 'clickable');
-  el.setAttribute('scale', isMobile ? '0.35 0.35 0.35' : '0.8 0.8 0.8');
+  el.setAttribute('scale', isMobile ? '0.6 0.6 0.6' : '0.8 0.8 0.8');
 
   var pool = isBad ? BAD_MODELS : GOOD_MODELS;
   var modelId = pool[Math.floor(Math.random() * pool.length)];
