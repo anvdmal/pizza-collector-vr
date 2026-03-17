@@ -83,7 +83,12 @@
       padding:18px 18px 16px;border-radius:16px;text-align:center;font-size:14px;max-width:min(92vw,420px)
     }
     #gps-wait .t{font-size:18px;font-weight:900;letter-spacing:.2px;color:var(--cheese);margin-bottom:8px}
-    #gps-wait .s{font-size:12px;opacity:.85;line-height:1.35}
+    #gps-wait .s{font-size:12px;opacity:.85;line-height:1.35;margin-bottom:14px}
+    #gps-wait .geo-btn{
+      pointer-events:auto;cursor:pointer;padding:14px 20px;font-size:15px;font-weight:700;
+      border-radius:12px;border:2px solid var(--cheese);background:rgba(245,158,11,.25);
+      color:var(--cheese);
+    }
     #result{
       display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.86);
       justify-content:center;align-items:center;flex-direction:column;
@@ -118,8 +123,9 @@
 </div>
 
 <div id="gps-wait">
-  <div class="t">Ищем тебя на карте…</div>
-  <div class="s">Разреши доступ к местоположению.</div>
+  <div class="t">Нужна геолокация</div>
+  <div class="s">Нажми кнопку — браузер запросит доступ к местоположению (для AR по GPS).</div>
+  <button type="button" id="btn-request-geo" class="geo-btn">Разрешить геолокацию</button>
 </div>
 
 <div id="result">
@@ -343,17 +349,33 @@ window.addEventListener('gps-camera-update-position', function(e){
   setCoords(e.detail.position.latitude, e.detail.position.longitude, false);
 });
 
-if (navigator.geolocation){
+function startWatchingGeo(){
+  if (!navigator.geolocation){
+    useFallback();
+    return;
+  }
+  document.querySelector('#gps-wait .t').textContent = 'Ищем тебя на карте…';
+  document.querySelector('#gps-wait .s').textContent = 'Разреши доступ к местоположению.';
+  var btn = document.getElementById('btn-request-geo');
+  if (btn) btn.style.display = 'none';
+
   navigator.geolocation.watchPosition(
-    function(pos){ setCoords(pos.coords.latitude,pos.coords.longitude,false); },
+    function(pos){ setCoords(pos.coords.latitude, pos.coords.longitude, false); },
     function(){ useFallback(); },
-    {enableHighAccuracy:true, timeout:10000}
+    {enableHighAccuracy: true, timeout: 10000, maximumAge: 0}
   );
-} else {
-  useFallback();
 }
 
-setTimeout(function(){ if(!userLat || !userLon) useFallback(); }, 12000);
+var btnRequestGeo = document.getElementById('btn-request-geo');
+if (btnRequestGeo){
+  btnRequestGeo.addEventListener('click', function(){
+    startWatchingGeo();
+  });
+}
+
+setTimeout(function(){
+  if ((!userLat || !userLon) && !gameStarted) useFallback();
+}, 12000);
 
 sceneEl.addEventListener('loaded', function(){
   var canvas  = this.canvas;
