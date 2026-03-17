@@ -109,17 +109,17 @@
   </div>
 </div>
 
-<div id="info">Поверни телефон и ищи ингредиенты вокруг! Собери 10, но не трогай чеснок, капусту и тыкву.</div>
+<div id="info">Собери 10 ингредиентов за 30 секунд. Опасные: чеснок, капуста, тыква.</div>
 
 <div id="gps-wait">
-  <div class="t">Определяем местоположение…</div>
-  <div class="s">Разреши доступ к геолокации.<br>На улице/у окна работает лучше.</div>
+  <div class="t">Ищем тебя на карте…</div>
+  <div class="s">Разреши доступ к местоположению. Если долго думает — выйди к окну или на улицу.</div>
 </div>
 
 <div id="result">
   <h2 id="result-title">Игра окончена</h2>
   <p id="result-text"></p>
-  <button class="again" id="btn-again">Играть снова</button>
+  <button class="again" id="btn-again">Ещё раз</button>
 </div>
 
 <a-scene
@@ -180,11 +180,11 @@ function finishGame(win, reason){
   var gpsEntities = sceneEl.querySelectorAll('a-entity[gps-entity-place]');
   for (var i=0;i<gpsEntities.length;i++) gpsEntities[i].remove();
   if (win){
-    resultTitle.textContent = 'Пицца готова!';
-    resultText.textContent  = 'Ты собрал(а) все 10 ингредиентов.';
+    resultTitle.textContent = 'Заказ собран';
+    resultText.textContent  = 'Отлично! Все 10 ингредиентов на месте.';
   } else {
-    resultTitle.textContent = 'Игра окончена';
-    resultText.textContent  = reason || 'Время вышло или попался плохой ингредиент.';
+    resultTitle.textContent = 'Раунд завершён';
+    resultText.textContent  = reason || 'Не получилось в этот раз.';
   }
   resultEl.classList.add('show');
 }
@@ -224,8 +224,8 @@ function spawnIngredient(isBad){
     handled = true;
     if (isBad){
       sndBad();
-      infoEl.textContent = 'Плохой ингредиент! (чеснок/тыква/капуста)';
-      finishGame(false, 'Плохой ингредиент.');
+      infoEl.textContent = 'Ой. Это было лишнее.';
+      finishGame(false, 'Ты собрал(а) опасный ингредиент.');
     } else {
       collected += 1;
       sndOk();
@@ -264,7 +264,7 @@ function startGame(){
     timeLeft -= 1;
     updateHud();
     if (timeLeft <= 0){
-      finishGame(collected >= 10, collected >= 10 ? null : 'Время вышло. Собрано '+collected+' из 10.');
+      finishGame(collected >= 10, collected >= 10 ? null : ('Время вышло. Собрано: ' + collected + '/10.'));
     }
   },1000);
 }
@@ -291,7 +291,7 @@ function setCoords(lat, lon, demo){
 
 function useFallback(){
   if (userLat && userLon) return;
-  infoEl.textContent = 'Геолокация недоступна — используем демо-координаты (Москва).';
+  infoEl.textContent = 'Не получилось получить местоположение — запускаю демо-режим.';
   var cam = document.getElementById('gps-cam');
   if (cam && cam.components['gps-camera']){
     cam.setAttribute('gps-camera','simulateLatitude:'+DEFAULT_LAT+'; simulateLongitude:'+DEFAULT_LON+';');
