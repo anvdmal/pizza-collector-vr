@@ -216,7 +216,7 @@ function finishGame(win, reason){
 var spawnAngle = 0;
 function rndOffset(){
   spawnAngle += 1.2 + Math.random() * 0.8;
-  var dist = (3 + Math.random()*5) / 111000;
+  var dist = (0.5 + Math.random() * 1.5) / 111000;
   return { lat: Math.cos(spawnAngle)*dist, lon: Math.sin(spawnAngle)*dist };
 }
 
@@ -228,11 +228,10 @@ function spawnIngredient(isBad){
 
   var el = document.createElement('a-entity');
   el.setAttribute('position', '0 2 0');
-  el.setAttribute('look-at', '[gps-new-camera]');
   el.setAttribute('class', 'clickable');
-  el.setAttribute('scale', '1.5 1.5 1.5');
+  el.setAttribute('scale', '2.5 2.5 2.5');
+  el.setAttribute('gps-new-entity-place', 'latitude: '+lat+'; longitude: '+lon+';');
 
-  // выбираем случайную модель в зависимости от типа
   var pool = isBad ? BAD_MODELS : GOOD_MODELS;
   var modelId = pool[Math.floor(Math.random() * pool.length)];
 
@@ -240,6 +239,7 @@ function spawnIngredient(isBad){
   m.setAttribute('gltf-model', modelId);
   el.appendChild(m);
 
+  el.setAttribute('look-at', '#gps-cam');
   el.setAttribute('animation__spin','property:rotation; to:0 360 0; dur:3500; loop:true; easing:linear');
 
   var handled = false;
@@ -247,7 +247,6 @@ function spawnIngredient(isBad){
     if (handled || gameOver) return;
     handled = true;
     if (isBad){
-      // фейковый ингредиент — мгновенный проигрыш
       sndBad();
       var title = MODEL_TITLES[modelId] || 'опасный ингредиент';
       infoEl.textContent = 'Пойман ' + title + ' — заказ испорчен.';
@@ -266,10 +265,15 @@ function spawnIngredient(isBad){
   });
 
   sceneEl.appendChild(el);
-  el.setAttribute('gps-new-entity-place', 'latitude: '+lat+'; longitude: '+lon+';');
-  if (el.components['gps-new-entity-place'] && el.components['gps-new-entity-place']._updatePosition) {
-    el.components['gps-new-entity-place']._updatePosition();
+  function updatePlace(){
+    if (!el.parentNode) return;
+    var comp = el.components['gps-new-entity-place'];
+    if (comp && comp._updatePosition) comp._updatePosition();
   }
+  updatePlace();
+  setTimeout(updatePlace, 200);
+  setTimeout(updatePlace, 600);
+  setTimeout(updatePlace, 1500);
   setTimeout(function(){ if(!handled && el.parentNode) el.remove(); }, isBad ? 12000 : 9000);
 }
 
