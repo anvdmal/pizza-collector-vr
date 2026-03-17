@@ -100,16 +100,19 @@
             var gpsAnchorText = document.getElementById('gpsAnchorText');
 
             var itemConfigs = [
-                { id: 'item01', label: 'Cheese', model: '#cheeseModel', scale: '0.50 0.50 0.50', y: 2.20, north: 12, east: 0, duration: 5200 },
-                { id: 'item02', label: 'Box', model: '#pizzaBoxModel', scale: '0.78 0.78 0.78', y: 1.55, north: 10, east: 6, duration: 5400 },
-                { id: 'item03', label: 'Tomato', model: '#tomatoModel', scale: '0.54 0.54 0.54', y: 2.40, north: 8, east: 12, duration: 5600 },
-                { id: 'item04', label: 'Cheese', model: '#cheeseModel', scale: '0.64 0.64 0.64', y: 1.35, north: 3, east: 14, duration: 5800 },
-                { id: 'item05', label: 'Tomato', model: '#tomatoModel', scale: '0.58 0.58 0.58', y: 2.65, north: -3, east: 14, duration: 6000 },
-                { id: 'item06', label: 'Box', model: '#pizzaBoxModel', scale: '0.64 0.64 0.64', y: 1.45, north: -8, east: 11, duration: 6200 },
-                { id: 'item07', label: 'Cheese', model: '#cheeseModel', scale: '0.58 0.58 0.58', y: 2.25, north: -12, east: 3, duration: 6400 },
-                { id: 'item08', label: 'Tomato', model: '#tomatoModel', scale: '0.56 0.56 0.56', y: 1.90, north: -12, east: -5, duration: 6600 },
-                { id: 'item09', label: 'Box', model: '#pizzaBoxModel', scale: '0.72 0.72 0.72', y: 2.75, north: -6, east: -12, duration: 6800 },
-                { id: 'item10', label: 'Cheese', model: '#cheeseModel', scale: '0.62 0.62 0.62', y: 1.25, north: 6, east: -12, duration: 7000 }
+                { id: 'item01', label: 'Cheese', model: '#cheeseModel', scale: '0.50 0.50 0.50', y: 2.20, north: 12, east: 0, duration: 5200, isFake: false },
+                { id: 'item02', label: 'Box', model: '#pizzaBoxModel', scale: '0.78 0.78 0.78', y: 1.55, north: 10, east: 6, duration: 5400, isFake: false },
+                { id: 'item03', label: 'Tomato', model: '#tomatoModel', scale: '0.54 0.54 0.54', y: 2.40, north: 8, east: 12, duration: 5600, isFake: false },
+                { id: 'item04', label: 'Cheese', model: '#cheeseModel', scale: '0.64 0.64 0.64', y: 1.35, north: 3, east: 14, duration: 5800, isFake: false },
+                { id: 'item05', label: 'Tomato', model: '#tomatoModel', scale: '0.58 0.58 0.58', y: 2.65, north: -3, east: 14, duration: 6000, isFake: false },
+                { id: 'item06', label: 'Box', model: '#pizzaBoxModel', scale: '0.64 0.64 0.64', y: 1.45, north: -8, east: 11, duration: 6200, isFake: false },
+                { id: 'item07', label: 'Cheese', model: '#cheeseModel', scale: '0.58 0.58 0.58', y: 2.25, north: -12, east: 3, duration: 6400, isFake: false },
+                { id: 'item08', label: 'Tomato', model: '#tomatoModel', scale: '0.56 0.56 0.56', y: 1.90, north: -12, east: -5, duration: 6600, isFake: false },
+                { id: 'item09', label: 'Box', model: '#pizzaBoxModel', scale: '0.72 0.72 0.72', y: 2.75, north: -6, east: -12, duration: 6800, isFake: false },
+                { id: 'item10', label: 'Cheese', model: '#cheeseModel', scale: '0.62 0.62 0.62', y: 1.25, north: 6, east: -12, duration: 7000, isFake: false },
+                { id: 'fakeGarlic', label: 'Garlic', model: '#garlicModel', scale: '0.52 0.52 0.52', y: 2.10, north: 5, east: 8, duration: 6000, isFake: true },
+                { id: 'fakeCabbage', label: 'Cabbage', model: '#cabbageModel', scale: '0.54 0.54 0.54', y: 1.80, north: -6, east: 10, duration: 6200, isFake: true },
+                { id: 'fakePumpkin', label: 'Pumpkin', model: '#pumpkinModel', scale: '0.60 0.60 0.60', y: 2.30, north: 7, east: -9, duration: 6400, isFake: true }
             ];
 
             function metersToLat(meters) {
@@ -161,6 +164,7 @@
 
                 for (var idx = 0; idx < n; idx++) {
                     var config = itemConfigs[idx];
+                    var isFake = !!config.isFake;
                     var arc = (Math.random() < 0.82) ? (220 * Math.PI / 180) : (360 * Math.PI / 180);
                     var start = -arc / 2;
                     var step = arc / Math.max(1, n - 1);
@@ -465,6 +469,19 @@
                 while (el && (!el.classList || !el.classList.contains('collectible'))) el = el.parentNode;
                 if (!gameActive) return;
                 if (!el || el.getAttribute('data-collected') === 'true') return;
+                var cfg = itemConfigs.find(function (c) { return c.id === el.id; });
+                if (cfg && cfg.isFake) {
+                    playTone(180, 120);
+                    setTimeout(function () { playTone(140, 200); }, 130);
+                    el.setAttribute('data-collected', 'true');
+                    if (hitButtons[el.id]) hitButtons[el.id].classList.add('hidden');
+                    el.setAttribute('animation__shrink', 'property: scale; to: 0 0 0; dur: 250');
+                    setTimeout(function () {
+                        if (el.parentNode) el.parentNode.removeChild(el);
+                    }, 260);
+                    finishGame(null, false, true);
+                    return;
+                }
                 el.setAttribute('data-collected', 'true');
                 collected += 1;
                 updateHud();
