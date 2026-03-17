@@ -322,6 +322,7 @@ function startGame(){
 
 document.getElementById('btn-again').addEventListener('click', function(){
   resultEl.classList.remove('show');
+  gpsWait.style.display = 'none';
   gameOver = false;
   gameStarted = false;
   collected = 0;
@@ -333,6 +334,7 @@ document.getElementById('btn-again').addEventListener('click', function(){
   spawnGood = null;
   spawnBad = null;
   updateHud();
+  infoEl.textContent = 'Статус: игра началась';
   if (sceneEl){
     var list = sceneEl.querySelectorAll('a-entity[gps-new-entity-place]');
     for (var i=0;i<list.length;i++) list[i].remove();
