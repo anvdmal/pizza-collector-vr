@@ -222,12 +222,24 @@
                         prim.setAttribute('material', 'color: ' + (config.color || '#888'));
                         entity.appendChild(prim);
                     } else {
+                        var placeholder = document.createElement('a-sphere');
+                        placeholder.setAttribute('class', 'clickable');
+                        placeholder.setAttribute('radius', '0.22');
+                        placeholder.setAttribute('position', '0 0 0');
+                        placeholder.setAttribute('material', 'color: #ffd166; emissive: #3b2f1c; emissiveIntensity: 0.35; metalness: 0.05; roughness: 0.85');
+                        placeholder.setAttribute('data-placeholder', 'true');
+                        entity.appendChild(placeholder);
+
                         var model = document.createElement('a-entity');
                         model.setAttribute('class', 'clickable');
                         model.setAttribute('gltf-model', config.model);
                         model.setAttribute('position', '0 0 0');
                         model.setAttribute('scale', config.scale);
                         model.setAttribute('data-base-scale', config.scale);
+                        model.addEventListener('model-loaded', function () {
+                            var p = entity.querySelector('[data-placeholder="true"]');
+                            if (p) p.setAttribute('visible', 'false');
+                        });
                         entity.appendChild(model);
                     }
 
