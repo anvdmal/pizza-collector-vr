@@ -278,7 +278,6 @@ var spawnBad  = null;
 var gameOver  = false;
 var gameStarted = false;
 
-// модели: хорошие и фейковые (опасные)
 var GOOD_MODELS = ['#cheeseModel', '#pizzaBoxModel', '#tomatoModel'];
 var BAD_MODELS  = ['#garlicModel', '#cabbageModel', '#pumpkinModel'];
 
@@ -399,17 +398,7 @@ function getCameraYaw(){
   return 0;
 }
 function rndOffset(){
-  // На мобилке спавним в секторе "перед камерой", иначе легко не увидеть.
-  if (isMobile){
-    var yaw = getCameraYaw();              // yaw камеры (рад)
-    var spread = 0.55;                     // ~±31°
-    spawnAngle = (-yaw) + (Math.random()*2 - 1) * spread;
-  } else {
-    spawnAngle += 1.2 + Math.random() * 0.8;
-  }
-  // Выбираем радиус в метрах и переводим в Δlat/Δlon.
-  // Для lon учитываем cos(latitude), чтобы метры были ближе к реальности.
-  var rMeters = isMobile ? (3 + Math.random() * 4) : (9 + Math.random() * 12);
+  var rMeters = isMobile ? (3 + Math.random() * 4) : (8 + Math.random() * 12);
   var north = Math.cos(spawnAngle) * rMeters;
   var east  = Math.sin(spawnAngle) * rMeters;
   var dLat = north / 111111;
@@ -429,7 +418,7 @@ function spawnIngredient(isBad){
   el.setAttribute('data-poi-id', poiId);
   el.setAttribute('position', isMobile ? '0 1 0' : '0 2 0');
   el.setAttribute('class', 'clickable');
-  el.setAttribute('scale', isMobile ? '4 4 4' : '0.95 0.95 0.95');
+  el.setAttribute('scale', isMobile ? '4 4 4' : '1.1 1.1 1.1');
 
   var pool = isBad ? BAD_MODELS : GOOD_MODELS;
   var modelId = pool[Math.floor(Math.random() * pool.length)];
@@ -439,14 +428,6 @@ function spawnIngredient(isBad){
   m.setAttribute('gltf-model', modelId);
   m.setAttribute('animation__spin', 'property: rotation; to: 0 360 0; dur: 3500; loop: true; easing: linear');
   el.appendChild(m);
-  // Фолбэк для мобилки/ iOS Safari: если glb не отрисуется, всё равно будет виден примитив
-  if (isMobile) {
-    var sphere = document.createElement('a-sphere');
-    sphere.setAttribute('radius', '0.6');
-    sphere.setAttribute('material', 'color: ' + (isBad ? '#e11d48' : '#16a34a') + '; emissive: ' + (isBad ? '#7f1024' : '#0b5f2c'));
-    sphere.setAttribute('animation__spin', 'property: rotation; to: 0 360 0; dur: 3500; loop: true; easing: linear');
-    el.appendChild(sphere);
-  }
 
   el.setAttribute('look-at', '#gps-cam');
 
@@ -479,7 +460,6 @@ function spawnIngredient(isBad){
     var comp = el.components['gps-new-entity-place'];
     if (comp && comp._updatePosition) comp._updatePosition();
   }
-  // На iOS Safari компонент может появляться не сразу после setAttribute
   el.addEventListener('componentinitialized', function(ev){
     if (ev && ev.detail && ev.detail.name === 'gps-new-entity-place') updatePlace();
   });
@@ -512,7 +492,6 @@ function startGame(){
     spawnGood = setInterval(function(){ if (!gameOver) spawnIngredient(false); }, 1500);
     spawnBad = setInterval(function(){ if (!gameOver) spawnIngredient(true); }, 3500);
   }
-  // Без большой задержки: первый объект должен появляться сразу после "Старт"
   if (isMobile) setTimeout(startSpawning, 800);
   else startSpawning();
 
@@ -565,7 +544,6 @@ window.addEventListener('arjs-source-ready', function(){
   dbg();
 });
 
-// Лог загрузки glb ассетов (особенно важно для iOS Safari)
 window.addEventListener('load', function(){
   var ids = ['cheeseModel','pizzaBoxModel','tomatoModel','garlicModel','cabbageModel','pumpkinModel'];
   assetLoad.total = ids.length;
