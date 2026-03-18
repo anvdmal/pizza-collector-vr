@@ -298,6 +298,8 @@ var DEFAULT_LAT = 55.7539, DEFAULT_LON = 37.6208;
 
 var debugOn = true;
 var assetLoad = { ok: 0, err: 0, total: 6 };
+var spawnCount = 0;
+var lastSpawnAt = 0;
 function dbg(){
   if (!debugOn || !dbgEl) return;
   dbgEl.style.display = 'block';
@@ -307,6 +309,8 @@ function dbg(){
   lines.push('cameraReady: ' + (cameraReady ? 'true' : 'false'));
   lines.push('gameStarted: ' + (gameStarted ? 'true' : 'false') + ', gameOver: ' + (gameOver ? 'true' : 'false'));
   lines.push('spawnedPOI: ' + spawnedPOI.length);
+  lines.push('spawnInt: good=' + (spawnGood ? 'on' : 'off') + ', bad=' + (spawnBad ? 'on' : 'off'));
+  lines.push('spawnCount: ' + spawnCount + (lastSpawnAt ? (', last=' + Math.round((Date.now()-lastSpawnAt)/100)/10 + 's') : ''));
   lines.push('assets glb: ' + assetLoad.ok + '/' + assetLoad.total + ' ok, ' + assetLoad.err + ' err');
   if (isMobile && spawnedPOI && spawnedPOI.length){
     lines.push('first5:');
@@ -419,6 +423,8 @@ function rndOffset(){
 
 function spawnIngredient(isBad){
   if (!userLat || !userLon || gameOver) return;
+  spawnCount += 1;
+  lastSpawnAt = Date.now();
   var o = rndOffset();
   var lat = userLat + o.lat;
   var lon = userLon + o.lon;
@@ -428,7 +434,9 @@ function spawnIngredient(isBad){
   el.setAttribute('data-poi-id', poiId);
   el.setAttribute('position', isMobile ? '0 1 0' : '0 2 0');
   el.setAttribute('class', 'clickable');
-  el.setAttribute('scale', isMobile ? '0.7 0.7 0.7' : '0.65 0.65 0.65');
+  // Родителя держим около 1, чтобы размер примитива был стабильный,
+  // а модель масштабируем отдельно (см. m.setAttribute('scale', ...)).
+  el.setAttribute('scale', isMobile ? '1 1 1' : '0.65 0.65 0.65');
 
   var pool = isBad ? BAD_MODELS : GOOD_MODELS;
   var modelId = pool[Math.floor(Math.random() * pool.length)];
@@ -436,6 +444,8 @@ function spawnIngredient(isBad){
 
   var m = document.createElement('a-entity');
   m.setAttribute('gltf-model', modelId);
+  // На мобилке GLB часто огромные по своим единицам — отдельно уменьшаем только модель
+  m.setAttribute('scale', isMobile ? '0.05 0.05 0.05' : '1 1 1');
   m.setAttribute('animation__spin', 'property: rotation; to: 0 360 0; dur: 3500; loop: true; easing: linear');
   el.appendChild(m);
   // Фолбэк для мобилки/ iOS Safari: если glb не отрисуется, всё равно будет виден примитив
