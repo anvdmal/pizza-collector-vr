@@ -427,9 +427,9 @@ function spawnIngredient(isBad){
 
   var el = document.createElement('a-entity');
   el.setAttribute('data-poi-id', poiId);
-  el.setAttribute('position', '0 2 0');
+  el.setAttribute('position', isMobile ? '0 1 0' : '0 2 0');
   el.setAttribute('class', 'clickable');
-  el.setAttribute('scale', isMobile ? '1.2 1.2 1.2' : '0.65 0.65 0.65');
+  el.setAttribute('scale', isMobile ? '4 4 4' : '0.65 0.65 0.65');
 
   var pool = isBad ? BAD_MODELS : GOOD_MODELS;
   var modelId = pool[Math.floor(Math.random() * pool.length)];
@@ -442,7 +442,7 @@ function spawnIngredient(isBad){
   // Фолбэк для мобилки/ iOS Safari: если glb не отрисуется, всё равно будет виден примитив
   if (isMobile) {
     var sphere = document.createElement('a-sphere');
-    sphere.setAttribute('radius', '0.18');
+    sphere.setAttribute('radius', '0.6');
     sphere.setAttribute('material', 'color: ' + (isBad ? '#e11d48' : '#16a34a') + '; emissive: ' + (isBad ? '#7f1024' : '#0b5f2c'));
     sphere.setAttribute('animation__spin', 'property: rotation; to: 0 360 0; dur: 3500; loop: true; easing: linear');
     el.appendChild(sphere);
