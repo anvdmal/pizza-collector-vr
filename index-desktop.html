@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+  <title>Pizza Hunt AR</title>
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-look-at-component@1.0.0/dist/aframe-look-at-component.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.7/three.js/build/ar-threex-location-only.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.7/aframe/build/aframe-ar.js"></script>
+  <link rel="stylesheet" href="./style.css">
+  <style>
+    :root{
+      --tomato:#e11d48;
+      --basil:#16a34a;
+      --cheese:#fff7d6;
+      --crust:#f59e0b;
+      --oven:#0b0f14;
+    }
+    body{overflow:hidden;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;touch-action:none}
+    #ui{position:fixed;top:12px;left:12px;z-index:999;pointer-events:none}
+    #btns{display:none}
+    #hud{
+      pointer-events:none;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      padding:12px 14px 10px;
+      border-radius:16px;
+      color:rgba(255,247,214,.95);
+      background:
+        radial-gradient(240px 160px at 10% 10%, rgba(225,29,72,.22), transparent 62%),
+        radial-gradient(240px 160px at 95% 10%, rgba(22,163,74,.16), transparent 60%),
+        linear-gradient(180deg, rgba(11,15,20,.86), rgba(11,15,20,.72));
+      border:1px solid rgba(255,247,214,.22);
+      box-shadow:0 14px 42px rgba(0,0,0,.55), 0 0 0 1px rgba(225,29,72,.10) inset;
+      min-width: 220px;
+    }
+    #hudRow{
+      display:flex;
+      gap:12px;
+      align-items:baseline;
+      justify-content:space-between;
+      font-weight:900;
+      letter-spacing:.2px;
+      font-size:14px;
+      line-height:1.15;
+    }
+    #hudRow .k{opacity:.85;font-weight:800}
+    #hudRow .v{color:var(--cheese)}
+    #coords{
+      pointer-events:none;
+      font-size:11px;
+      opacity:.78;
+      color:rgba(255,247,214,.92);
+      display:flex;
+      gap:6px;
+      align-items:baseline;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    #rules{
+      pointer-events:none;
+      font-size:12px;
+      line-height:1.25;
+      opacity:.90;
+      color:rgba(255,247,214,.92);
+    }
+    #rules b{ color: var(--cheese); }
+    #info{
+      pointer-events:none;
+      font-size:12px;
+      line-height:1.2;
+      opacity:.72;
+      color:rgba(255,247,214,.9);
+    }
+    #gps-wait{
+      position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+      z-index:999;background:rgba(11,15,20,.88);color:rgba(255,247,214,.95);
+      border:1px solid rgba(255,247,214,.18);
+      box-shadow:0 18px 70px rgba(0,0,0,.65);
+      padding:18px 18px 16px;border-radius:16px;text-align:center;font-size:14px;max-width:min(92vw,420px)
+    }
+    #gps-wait .t{font-size:18px;font-weight:900;letter-spacing:.2px;color:var(--cheese);margin-bottom:8px}
+    #gps-wait .s{font-size:12px;opacity:.85;line-height:1.35;margin-bottom:14px}
+    #gps-wait .geo-btn{
+      pointer-events:auto;cursor:pointer;padding:14px 20px;font-size:15px;font-weight:700;
+      border-radius:12px;border:2px solid var(--cheese);background:rgba(245,158,11,.25);
+      color:var(--cheese);
+    }
+    #gps-wait .start-btn{ background:rgba(22,163,74,.35); border-color:var(--basil); color:#b8f5d0; font-size:17px; padding:16px 28px; }
+    #result{
+      display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.86);
+      justify-content:center;align-items:center;flex-direction:column;
+      color:rgba(255,247,214,.96);text-align:center;padding:20px
+    }
+    #result.show{display:flex}
+    #result h2{font-size:1.7em;margin-bottom:10px;color:var(--cheese);text-shadow:0 0 18px rgba(225,29,72,.18)}
+    #result p{max-width: 520px}
+    #result .again{
+      margin-top:18px;padding:12px 18px;font-size:15px;cursor:pointer;border-radius:12px;
+      background:linear-gradient(90deg, rgba(22,163,74,.22), rgba(245,158,11,.24), rgba(225,29,72,.22));
+      border:1px solid rgba(255,247,214,.26);color:#fff
+    }
+    #poi{
+      position:fixed;
+      left:12px;
+      right:12px;
+      bottom:12px;
+      z-index:999;
+      pointer-events:none;
+    }
+    #poiCard{
+      pointer-events:none;
+      border-radius:14px;
+      overflow:hidden;
+      background:rgba(11,15,20,.68);
+      border:1px solid rgba(255,247,214,.18);
+      box-shadow:0 14px 42px rgba(0,0,0,.45);
+      backdrop-filter: blur(10px);
+    }
+    #poiHead{
+      display:flex;
+      align-items:baseline;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px 12px;
+      color:rgba(255,247,214,.92);
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.2px;
+      border-bottom:1px solid rgba(255,247,214,.10);
+      background:linear-gradient(180deg, rgba(245,158,11,.10), rgba(225,29,72,.06));
+    }
+    #poiBody{
+      max-height: 26vh;
+      overflow:auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    #poiGrid{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:6px 10px;
+      padding:10px 12px;
+    }
+    .poiItem{
+      padding:8px 10px;
+      border-radius:12px;
+      border:1px solid rgba(255,247,214,.10);
+      background:rgba(11,15,20,.55);
+      color:rgba(255,247,214,.92);
+      font-size:12px;
+      line-height:1.2;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .poiItem .c{
+      opacity:.78;
+      font-variant-numeric: tabular-nums;
+    }
+    #poiEmpty{
+      padding:10px 12px;
+      font-size:12px;
+      color:rgba(255,247,214,.75);
+    }
+    @media (max-width: 768px){
+      #poi{ display:none; }
+    }
+    #dbg{
+      position:fixed;
+      right:12px;
+      bottom:12px;
+      z-index:1001;
+      pointer-events:none;
+      max-width:min(92vw,420px);
+      padding:10px 12px;
+      border-radius:14px;
+      background:rgba(0,0,0,.65);
+      border:1px solid rgba(255,255,255,.14);
+      color:#fff;
+      font-size:12px;
+      line-height:1.25;
+      display:none;
+      white-space:pre-wrap;
+    }
+    @media (min-width: 769px){
+      #dbg{ top:12px; bottom:auto; }
+    }
+    .fps{position:fixed;font-size:28px;font-weight:900;pointer-events:none;z-index:999;animation:fup 1s ease-out forwards}
+    .fps.g{color:var(--cheese);text-shadow:0 0 14px rgba(245,158,11,.35)}
+    .fps.b{color:#ff4444}
+    @keyframes fup{0%{opacity:1;transform:translateY(0) scale(1.15)}100%{opacity:0;transform:translateY(-70px) scale(.85)}}
+  </style>
+</head>
+<body>
+
+<div id="ui">
+  <div id="hud">
+    <div id="hudRow">
+      <span><span class="k">Собрано</span> <span class="v"><span id="score-count">0</span>/10</span></span>
+      <span><span class="k">Время</span> <span class="v"><span id="timer">30</span>с</span></span>
+    </div>
+    <div id="coords"><span style="opacity:.9">Местоположение:</span> <span id="coord-val">определяем…</span></div>
+    <div id="rules">Правила: собери <b>10</b> ингредиентов за <b>30</b> секунд. Опасные — <b>чеснок</b>, <b>капуста</b>, <b>тыква</b>.</div>
+    <div id="info">Статус: подготовка…</div>
+  </div>
+</div>
+
+<div id="gps-wait">
+  <div class="t">Нужна геолокация</div>
+  <button type="button" id="btn-request-geo" class="geo-btn">Разрешить геолокацию</button>
+  <div id="ready-block" style="display:none;">
+    <button type="button" id="btn-start-game" class="geo-btn start-btn">Старт</button>
+  </div>
+</div>
+
+<div id="result">
+  <h2 id="result-title">Игра окончена</h2>
+  <p id="result-text"></p>
+  <button class="again" id="btn-again">Ещё раз</button>
+</div>
+
+<div id="poi">
+  <div id="poiCard">
+    <div id="poiHead">
+      <span>Объекты (координаты)</span>
+      <span id="poiCount">0</span>
+    </div>
+    <div id="poiBody">
+      <div id="poiEmpty">Пока нет объектов…</div>
+      <div id="poiGrid" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<div id="dbg"></div>
+
+<a-scene
+  vr-mode-ui="enabled: false"
+  arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false;"
+  loading-screen="enabled: false">
+
+  <a-assets timeout="15000">
+    <a-asset-item id="cheeseModel"  src="pizza%20models/cheese.glb"></a-asset-item>
+    <a-asset-item id="pizzaBoxModel" src="pizza%20models/pizza%20box.glb"></a-asset-item>
+    <a-asset-item id="tomatoModel"  src="pizza%20models/tomato.glb"></a-asset-item>
+    <a-asset-item id="garlicModel"  src="pizza%20models/garlic.glb"></a-asset-item>
+    <a-asset-item id="cabbageModel" src="pizza%20models/cabbage.glb"></a-asset-item>
+    <a-asset-item id="pumpkinModel" src="pizza%20models/pumpkin.glb"></a-asset-item>
+  </a-assets>
+
+  <a-camera id="gps-cam" gps-new-camera="gpsMinDistance: 0" rotation-reader camera="far: 10000"></a-camera>
+</a-scene>
+
+<script>
+var scoreEl  = document.getElementById('score-count');
+var timerEl  = document.getElementById('timer');
+var infoEl   = document.getElementById('info');
+var coordEl  = document.getElementById('coord-val');
+var gpsWait  = document.getElementById('gps-wait');
+var resultEl = document.getElementById('result');
+var resultTitle = document.getElementById('result-title');
+var resultText  = document.getElementById('result-text');
+var sceneEl = document.querySelector('a-scene');
+var dbgEl = document.getElementById('dbg');
+
+var poiCountEl = document.getElementById('poiCount');
+var poiEmptyEl = document.getElementById('poiEmpty');
+var poiGridEl = document.getElementById('poiGrid');
+
+var collected = 0;
+var timeLeft  = 30;
+var timerInt  = null;
+var spawnGood = null;
+var spawnBad  = null;
+var gameOver  = false;
+var gameStarted = false;
+
+// модели: хорошие и фейковые (опасные)
+var GOOD_MODELS = ['#cheeseModel', '#pizzaBoxModel', '#tomatoModel'];
+var BAD_MODELS  = ['#garlicModel', '#cabbageModel', '#pumpkinModel'];
+
+var MODEL_TITLES = {
+  '#cheeseModel': 'сыр',
+  '#pizzaBoxModel': 'коробка пиццы',
+  '#tomatoModel': 'помидор',
+  '#garlicModel': 'чеснок',
+  '#cabbageModel': 'капуста',
+  '#pumpkinModel': 'тыква'
+};
+
+var userLat = null, userLon = null;
+var cameraReady = false;
+var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) || (window.innerWidth <= 768);
+var isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+var DEFAULT_LAT = 55.7539, DEFAULT_LON = 37.6208;
+
+var debugOn = true;
+var assetLoad = { ok: 0, err: 0, total: 6 };
+function dbg(){
+  if (!debugOn || !dbgEl) return;
+  dbgEl.style.display = 'block';
+  var lines = [];
+  lines.push('DEBUG');
+  lines.push('GPS: ' + (userLat != null ? (userLat.toFixed(5)+', '+userLon.toFixed(5)) : 'нет'));
+  lines.push('cameraReady: ' + (cameraReady ? 'true' : 'false'));
+  lines.push('gameStarted: ' + (gameStarted ? 'true' : 'false') + ', gameOver: ' + (gameOver ? 'true' : 'false'));
+  lines.push('spawnedPOI: ' + spawnedPOI.length);
+  lines.push('assets glb: ' + assetLoad.ok + '/' + assetLoad.total + ' ok, ' + assetLoad.err + ' err');
+  if (isMobile && spawnedPOI && spawnedPOI.length){
+    lines.push('first5:');
+    for (var i = 0; i < Math.min(5, spawnedPOI.length); i++){
+      var p = spawnedPOI[i];
+      lines.push((i+1) + ') ' + p.title + ' (' + p.lat.toFixed(5) + ', ' + p.lon.toFixed(5) + ')');
+    }
+  }
+  dbgEl.textContent = lines.join('\n');
+}
+
+var spawnedPOI = [];
+function upPoiUI(){
+  if (!poiCountEl || !poiEmptyEl || !poiGridEl) return;
+  poiCountEl.textContent = String(spawnedPOI.length);
+  if (spawnedPOI.length === 0){
+    poiEmptyEl.style.display = 'block';
+    poiGridEl.style.display = 'none';
+    poiGridEl.innerHTML = '';
+    return;
+  }
+  poiEmptyEl.style.display = 'none';
+  poiGridEl.style.display = 'grid';
+  poiGridEl.innerHTML = spawnedPOI.map(function(p){
+    return '<div class="poiItem" title="' + p.title + ' (' + p.lat.toFixed(5) + ', ' + p.lon.toFixed(5) + ')">' +
+      '<span class="n">' + p.title + '</span> ' +
+      '<span class="c">(' + p.lat.toFixed(5) + ', ' + p.lon.toFixed(5) + ')</span>' +
+    '</div>';
+  }).join('');
+  dbg();
+}
+function addPOI(id, title, lat, lon){
+  spawnedPOI.push({ id:id, title:title, lat:lat, lon:lon });
+  upPoiUI();
+}
+function removePOI(id){
+  for (var i = spawnedPOI.length - 1; i >= 0; i--){
+    if (spawnedPOI[i].id === id) spawnedPOI.splice(i,1);
+  }
+  upPoiUI();
+}
+function clearPOI(){
+  spawnedPOI = [];
+  upPoiUI();
+}
+
+var _actx;
+function ac(){ if(!_actx)_actx=new(window.AudioContext||window.webkitAudioContext)(); return _actx; }
+function beep(f,d,v){ try{ var c=ac(),o=c.createOscillator(),g=c.createGain(); o.connect(g);g.connect(c.destination); o.type='sine';o.frequency.value=f; g.gain.setValueAtTime(v||0.3,c.currentTime); g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d); o.start();o.stop(c.currentTime+d);}catch(e){} }
+function sndOk(){ beep(880,0.12,0.4); }
+function sndBad(){ beep(200,0.25,0.3); setTimeout(function(){beep(140,0.25,0.25);},140); }
+
+function updateHud(){
+  scoreEl.textContent = collected;
+  timerEl.textContent = timeLeft;
+}
+
+
+function finishGame(win, reason){
+  if (gameOver) return;
+  gameOver = true;
+  clearInterval(timerInt);
+  clearInterval(spawnGood);
+  clearInterval(spawnBad);
+  timerInt = null;
+  spawnGood = null;
+  spawnBad = null;
+  var gpsEntities = sceneEl.querySelectorAll('a-entity[gps-new-entity-place]');
+  for (var i=0;i<gpsEntities.length;i++) gpsEntities[i].remove();
+  clearPOI();
+  if (win){
+    resultTitle.textContent = 'Пицца готова';
+    resultText.textContent  = 'Отлично! Все 10 ингредиентов на месте.';
+  } else {
+    resultTitle.textContent = 'Раунд завершён';
+    resultText.textContent  = reason || 'Не получилось в этот раз.';
+  }
+  resultEl.classList.add('show');
+}
+
+var spawnAngle = 0;
+function getCameraYaw(){
+  try{
+    var camEl = document.getElementById('gps-cam');
+    if (camEl && camEl.object3D && camEl.object3D.rotation && typeof camEl.object3D.rotation.y === 'number') {
+      return camEl.object3D.rotation.y;
+    }
+  }catch(e){}
+  return 0;
+}
+function rndOffset(){
+  // На мобилке спавним в секторе "перед камерой", иначе легко не увидеть.
+  if (isMobile){
+    var yaw = getCameraYaw();              // yaw камеры (рад)
+    var spread = 0.55;                     // ~±31°
+    spawnAngle = (-yaw) + (Math.random()*2 - 1) * spread;
+  } else {
+    spawnAngle += 1.2 + Math.random() * 0.8;
+  }
+  // Выбираем радиус в метрах и переводим в Δlat/Δlon.
+  // Для lon учитываем cos(latitude), чтобы метры были ближе к реальности.
+  var rMeters = isMobile ? (3 + Math.random() * 4) : (12 + Math.random() * 12);
+  var north = Math.cos(spawnAngle) * rMeters;
+  var east  = Math.sin(spawnAngle) * rMeters;
+  var dLat = north / 111111;
+  var latForCos = (userLat != null ? userLat : DEFAULT_LAT) * Math.PI / 180;
+  var dLon = east / (111111 * Math.max(0.2, Math.cos(latForCos)));
+  return { lat: dLat, lon: dLon };
+}
+
+function spawnIngredient(isBad){
+  if (!userLat || !userLon || gameOver) return;
+  var o = rndOffset();
+  var lat = userLat + o.lat;
+  var lon = userLon + o.lon;
+  var poiId = String(Date.now()) + '-' + Math.floor(Math.random()*1e9);
+
+  var el = document.createElement('a-entity');
+  el.setAttribute('data-poi-id', poiId);
+  el.setAttribute('position', isMobile ? '0 1 0' : '0 2 0');
+  el.setAttribute('class', 'clickable');
+  el.setAttribute('scale', isMobile ? '4 4 4' : '0.65 0.65 0.65');
+
+  var pool = isBad ? BAD_MODELS : GOOD_MODELS;
+  var modelId = pool[Math.floor(Math.random() * pool.length)];
+  addPOI(poiId, (MODEL_TITLES[modelId] || (isBad ? 'опасный' : 'ингредиент')), lat, lon);
+
+  var m = document.createElement('a-entity');
+  m.setAttribute('gltf-model', modelId);
+  m.setAttribute('animation__spin', 'property: rotation; to: 0 360 0; dur: 3500; loop: true; easing: linear');
+  el.appendChild(m);
+  // Фолбэк для мобилки/ iOS Safari: если glb не отрисуется, всё равно будет виден примитив
+  if (isMobile) {
+    var sphere = document.createElement('a-sphere');
+    sphere.setAttribute('radius', '0.6');
+    sphere.setAttribute('material', 'color: ' + (isBad ? '#e11d48' : '#16a34a') + '; emissive: ' + (isBad ? '#7f1024' : '#0b5f2c'));
+    sphere.setAttribute('animation__spin', 'property: rotation; to: 0 360 0; dur: 3500; loop: true; easing: linear');
+    el.appendChild(sphere);
+  }
+
+  el.setAttribute('look-at', '#gps-cam');
+
+  var handled = false;
+  el.addEventListener('click', function(){
+    if (handled || gameOver) return;
+    handled = true;
+    if (isBad){
+      sndBad();
+      var title = MODEL_TITLES[modelId] || 'опасный ингредиент';
+      infoEl.textContent = 'Пойман ' + title + ' — заказ испорчен.';
+      finishGame(false, 'Ты поймал фейковый ингредиент (' + title + '). Игра окончена.');
+    } else {
+      collected += 1;
+      sndOk();
+      infoEl.textContent = 'Собрано: ' + collected + '/10';
+      updateHud();
+      if (collected >= 10){
+        finishGame(true);
+      }
+    }
+    el.setAttribute('animation__die','property:scale; to:0 0 0; dur:260; easing:easeInBack');
+    setTimeout(function(){ removePOI(poiId); if(el.parentNode) el.remove(); }, 280);
+  });
+
+  sceneEl.appendChild(el);
+  el.setAttribute('gps-new-entity-place', 'latitude: '+lat+'; longitude: '+lon+';');
+  function updatePlace(){
+    if (!el.parentNode) return;
+    var comp = el.components['gps-new-entity-place'];
+    if (comp && comp._updatePosition) comp._updatePosition();
+  }
+  // На iOS Safari компонент может появляться не сразу после setAttribute
+  el.addEventListener('componentinitialized', function(ev){
+    if (ev && ev.detail && ev.detail.name === 'gps-new-entity-place') updatePlace();
+  });
+  updatePlace();
+  setTimeout(updatePlace, 200);
+  setTimeout(updatePlace, 600);
+  setTimeout(updatePlace, 1500);
+  if (isMobile) {
+    setTimeout(updatePlace, 2500);
+    setTimeout(updatePlace, 4000);
+    setTimeout(updatePlace, 6000);
+  }
+  if (isIOS) {
+    for (var i = 1; i <= 16; i++) setTimeout(updatePlace, 500 * i);
+  }
+}
+
+function startGame(){
+  if (gameStarted) return;
+  gameStarted = true;
+  gpsWait.style.display = 'none';
+  infoEl.textContent = 'Статус: игра началась';
+  collected = 0;
+  timeLeft  = 30;
+  updateHud();
+
+  function startSpawning(){
+    if (gameOver) return;
+    spawnIngredient(false);
+    spawnGood = setInterval(function(){ if (!gameOver) spawnIngredient(false); }, 1500);
+    spawnBad = setInterval(function(){ if (!gameOver) spawnIngredient(true); }, 3500);
+  }
+  // Без большой задержки: первый объект должен появляться сразу после "Старт"
+  if (isMobile) setTimeout(startSpawning, 800);
+  else startSpawning();
+
+  timerInt = setInterval(function(){
+    timeLeft -= 1;
+    updateHud();
+    if (timeLeft <= 0){
+      clearInterval(timerInt);
+      clearInterval(spawnGood);
+      clearInterval(spawnBad);
+      finishGame(collected >= 10, collected >= 10 ? null : ('Время вышло. Собрано: ' + collected + '/10.'));
+    }
+  }, 1000);
+}
+
+document.getElementById('btn-again').addEventListener('click', function(){
+  resultEl.classList.remove('show');
+  gpsWait.style.display = 'none';
+  gameOver = false;
+  gameStarted = false;
+  collected = 0;
+  timeLeft  = 30;
+  clearInterval(timerInt);
+  clearInterval(spawnGood);
+  clearInterval(spawnBad);
+  timerInt = null;
+  spawnGood = null;
+  spawnBad = null;
+  updateHud();
+  infoEl.textContent = 'Статус: игра началась';
+  if (sceneEl){
+    var list = sceneEl.querySelectorAll('a-entity[gps-new-entity-place]');
+    for (var i=0;i<list.length;i++) list[i].remove();
+  }
+  clearPOI();
+  startGame();
+});
+
+function setCoords(lat, lon, demo){
+  userLat = lat;
+  userLon = lon;
+  coordEl.textContent = lat.toFixed(5)+', '+lon.toFixed(5)+(demo ? ' (демо)' : '');
+  if (!gameStarted && cameraReady) showStartButton();
+  dbg();
+}
+
+window.addEventListener('arjs-source-ready', function(){
+  cameraReady = true;
+  if (userLat != null && userLon != null) showStartButton();
+  dbg();
+});
+
+// Лог загрузки glb ассетов (особенно важно для iOS Safari)
+window.addEventListener('load', function(){
+  var ids = ['cheeseModel','pizzaBoxModel','tomatoModel','garlicModel','cabbageModel','pumpkinModel'];
+  assetLoad.total = ids.length;
+  ids.forEach(function(id){
+    var it = document.getElementById(id);
+    if (!it) return;
+    it.addEventListener('loaded', function(){ assetLoad.ok += 1; dbg(); });
+    it.addEventListener('error', function(){ assetLoad.err += 1; dbg(); });
+  });
+  dbg();
+});
+
+function useFallback(){
+  if (userLat && userLon) return;
+  infoEl.textContent = 'Не получилось получить местоположение — запускаю демо-режим.';
+  var cam = document.getElementById('gps-cam');
+  if (cam && cam.components['gps-new-camera']){
+    cam.setAttribute('gps-new-camera','simulateLatitude:'+DEFAULT_LAT+'; simulateLongitude:'+DEFAULT_LON+';');
+  }
+  setCoords(DEFAULT_LAT, DEFAULT_LON, true);
+}
+
+window.addEventListener('gps-camera-update-position', function(e){
+  setCoords(e.detail.position.latitude, e.detail.position.longitude, false);
+});
+
+function showStartButton(){
+  if (!cameraReady || userLat == null || userLon == null) return;
+  var readyBlock = document.getElementById('ready-block');
+  var btnGeo = document.getElementById('btn-request-geo');
+  if (readyBlock){ readyBlock.style.display = 'block'; }
+  if (btnGeo){ btnGeo.style.display = 'none'; }
+  document.querySelector('#gps-wait .t').textContent = 'Готово к старту';
+}
+
+function startWatchingGeo(){
+  if (!navigator.geolocation){ useFallback(); return; }
+  var btn = document.getElementById('btn-request-geo');
+  if (btn) btn.style.display = 'none';
+  document.querySelector('#gps-wait .t').textContent = 'Ищем тебя на карте…';
+  dbg();
+
+  navigator.geolocation.watchPosition(
+    function(pos){ setCoords(pos.coords.latitude, pos.coords.longitude, false); },
+    function(){ useFallback(); },
+    {enableHighAccuracy: true, timeout: 10000, maximumAge: 0}
+  );
+}
+
+var btnStartGame = document.getElementById('btn-start-game');
+if (btnStartGame){
+  btnStartGame.addEventListener('click', function(){
+    if (!gameStarted && userLat != null && userLon != null) {
+      gpsWait.style.display = 'none';
+      startGame();
+    }
+  });
+}
+
+var btnRequestGeo = document.getElementById('btn-request-geo');
+if (btnRequestGeo){
+  btnRequestGeo.addEventListener('click', function(){
+    startWatchingGeo();
+  });
+}
+
+setTimeout(function(){
+  if ((!userLat || !userLon) && !gameStarted) useFallback();
+}, 12000);
+
+sceneEl.addEventListener('loaded', function(){
+  cameraReady = true;
+  if (userLat != null && userLon != null) showStartButton();
+  var canvas  = this.canvas;
+  var scene3d = this.object3D;
+  var raycaster   = new THREE.Raycaster();
+  var pointerNDC  = new THREE.Vector2();
+
+  function getPointerCoords(evt){
+    var x = (evt.touches && evt.touches[0]) ? evt.touches[0].clientX : evt.clientX;
+    var y = (evt.touches && evt.touches[0]) ? evt.touches[0].clientY : evt.clientY;
+    return { x: x || 0, y: y || 0 };
+  }
+
+  function toNDC(screenX, screenY){
+    var rect = canvas.getBoundingClientRect();
+    pointerNDC.x = (screenX - rect.left) / rect.width * 2 - 1;
+    pointerNDC.y = -(screenY - rect.top) / rect.height * 2 + 1;
+  }
+
+  function findClickableEntity(obj){
+    while (obj){
+      if (obj.el && obj.el.classList && obj.el.classList.contains('clickable')) return obj.el;
+      obj = obj.parent;
+    }
+    return null;
+  }
+
+  function onPointerTap(evt){
+    var coords = getPointerCoords(evt);
+    toNDC(coords.x, coords.y);
+
+    var camEl = document.querySelector('[camera]');
+    if (!camEl || !camEl.components || !camEl.components.camera) return;
+    var threeCamera = camEl.components.camera.camera;
+
+    raycaster.setFromCamera(pointerNDC, threeCamera);
+    var hits = raycaster.intersectObject(scene3d, true);
+    for (var i=0;i<hits.length;i++){
+      var entity = findClickableEntity(hits[i].object);
+      if (entity){
+        entity.dispatchEvent(new MouseEvent('click', { bubbles:true }));
+        return;
+      }
+    }
+  }
+
+  canvas.addEventListener('click', onPointerTap, false);
+  canvas.addEventListener('touchstart', function(e){ e.preventDefault(); onPointerTap(e); }, { passive:false });
+});
+
+window.addEventListener('load', function(){
+  setTimeout(function(){
+    if (!gameStarted) useFallback();
+  }, 5000);
+});
+</script>
+</body>
+</html>
