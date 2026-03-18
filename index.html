@@ -370,10 +370,11 @@ function spawnIngredient(isBad){
   m.setAttribute('gltf-model', modelId);
   m.setAttribute('animation__spin', 'property: rotation; to: 0 360 0; dur: 3500; loop: true; easing: linear');
   el.appendChild(m);
-  if (isIOS) {
+  // Фолбэк для мобилки/ iOS Safari: если glb не отрисуется, всё равно будет виден примитив
+  if (isMobile) {
     var sphere = document.createElement('a-sphere');
-    sphere.setAttribute('radius', '0.25');
-    sphere.setAttribute('material', 'color: ' + (isBad ? '#e11d48' : '#16a34a'));
+    sphere.setAttribute('radius', '0.18');
+    sphere.setAttribute('material', 'color: ' + (isBad ? '#e11d48' : '#16a34a') + '; emissive: ' + (isBad ? '#7f1024' : '#0b5f2c'));
     sphere.setAttribute('animation__spin', 'property: rotation; to: 0 360 0; dur: 3500; loop: true; easing: linear');
     el.appendChild(sphere);
   }
@@ -438,8 +439,8 @@ function startGame(){
     spawnGood = setInterval(function(){ if (!gameOver) spawnIngredient(false); }, 1500);
     spawnBad = setInterval(function(){ if (!gameOver) spawnIngredient(true); }, 3500);
   }
-  if (isIOS) setTimeout(startSpawning, 4500);
-  else if (isMobile) setTimeout(startSpawning, 2000);
+  // Без большой задержки: первый объект должен появляться сразу после "Старт"
+  if (isMobile) setTimeout(startSpawning, 800);
   else startSpawning();
 
   timerInt = setInterval(function(){
