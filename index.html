@@ -242,12 +242,23 @@
   loading-screen="enabled: false">
 
   <a-assets timeout="15000">
-    <a-asset-item id="cheeseModel"  src="pizza%20models/cheese.glb"></a-asset-item>
-    <a-asset-item id="pizzaBoxModel" src="pizza%20models/pizza%20box.glb"></a-asset-item>
-    <a-asset-item id="tomatoModel"  src="pizza%20models/tomato.glb"></a-asset-item>
-    <a-asset-item id="garlicModel"  src="pizza%20models/garlic.glb"></a-asset-item>
+    <!-- OLD (pizza models/*) -->
+    <!-- <a-asset-item id="cheeseModel"  src="pizza%20models/cheese.glb"></a-asset-item> -->
+    <!-- <a-asset-item id="pizzaBoxModel" src="pizza%20models/pizza%20box.glb"></a-asset-item> -->
+    <!-- <a-asset-item id="tomatoModel"  src="pizza%20models/tomato.glb"></a-asset-item> -->
+    <!-- <a-asset-item id="garlicModel"  src="pizza%20models/garlic.glb"></a-asset-item> -->
+    <!-- <a-asset-item id="cabbageModel" src="pizza%20models/cabbage.glb"></a-asset-item> -->
+    <!-- <a-asset-item id="pumpkinModel" src="pizza%20models/pumpkin.glb"></a-asset-item> -->
+
+    <!-- NEW (assets/*) -->
+    <a-asset-item id="cheeseModel"  src="assets/cheese.glb"></a-asset-item>
+    <a-asset-item id="pizzaBoxModel" src="assets/pizza%20box.glb"></a-asset-item>
+    <a-asset-item id="tomatoModel"  src="assets/tomato.glb"></a-asset-item>
+    <!-- keep id="garlicModel" for game logic, but file is onion.glb -->
+    <a-asset-item id="garlicModel"  src="assets/onion.glb"></a-asset-item>
+    <!-- no cabbage.glb in assets right now, keep old one -->
     <a-asset-item id="cabbageModel" src="pizza%20models/cabbage.glb"></a-asset-item>
-    <a-asset-item id="pumpkinModel" src="pizza%20models/pumpkin.glb"></a-asset-item>
+    <a-asset-item id="pumpkinModel" src="assets/pumpkin.glb"></a-asset-item>
   </a-assets>
 
   <a-camera id="gps-cam" gps-camera rotation-reader camera="far: 10000"></a-camera>
