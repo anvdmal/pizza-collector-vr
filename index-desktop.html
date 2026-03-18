@@ -409,7 +409,7 @@ function rndOffset(){
   }
   // Выбираем радиус в метрах и переводим в Δlat/Δlon.
   // Для lon учитываем cos(latitude), чтобы метры были ближе к реальности.
-  var rMeters = isMobile ? (3 + Math.random() * 4) : (12 + Math.random() * 12);
+  var rMeters = isMobile ? (3 + Math.random() * 4) : (9 + Math.random() * 12);
   var north = Math.cos(spawnAngle) * rMeters;
   var east  = Math.sin(spawnAngle) * rMeters;
   var dLat = north / 111111;
@@ -429,7 +429,7 @@ function spawnIngredient(isBad){
   el.setAttribute('data-poi-id', poiId);
   el.setAttribute('position', isMobile ? '0 1 0' : '0 2 0');
   el.setAttribute('class', 'clickable');
-  el.setAttribute('scale', isMobile ? '4 4 4' : '0.65 0.65 0.65');
+  el.setAttribute('scale', isMobile ? '4 4 4' : '0.95 0.95 0.95');
 
   var pool = isBad ? BAD_MODELS : GOOD_MODELS;
   var modelId = pool[Math.floor(Math.random() * pool.length)];
