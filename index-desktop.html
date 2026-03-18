@@ -392,9 +392,9 @@ function finishGame(win, reason){
 // DESKTOP: вместо GPS-раскладки "по кругу" показываем объекты перед камерой,
 // чтобы они всегда были в кадре.
 var screenSlots = [
-  [-1.2,  0.7, -5.0], [0,  0.7, -5.0], [1.2,  0.7, -5.0],
-  [-1.2, -0.2, -4.8], [0, -0.2, -4.8], [1.2, -0.2, -4.8],
-  [-1.2, -1.1, -4.6], [0, -1.1, -4.6], [1.2, -1.1, -4.6]
+  [-1.2,  0.7, -3.0], [0,  0.7, -3.0], [1.2,  0.7, -3.0],
+  [-1.2, -0.2, -2.8], [0, -0.2, -2.8], [1.2, -0.2, -2.8],
+  [-1.2, -1.1, -2.6], [0, -1.1, -2.6], [1.2, -1.1, -2.6]
 ];
 var screenSlotIdx = 0;
 function nextScreenPos(){
@@ -414,7 +414,7 @@ function spawnIngredient(isBad){
   var p = nextScreenPos();
   el.setAttribute('position', p.x + ' ' + p.y + ' ' + p.z);
   el.setAttribute('class', 'clickable');
-  el.setAttribute('scale', '1.1 1.1 1.1');
+  el.setAttribute('scale', '1.4 1.4 1.4');
 
   var pool = isBad ? BAD_MODELS : GOOD_MODELS;
   var modelId = pool[Math.floor(Math.random() * pool.length)];
