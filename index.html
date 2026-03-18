@@ -138,35 +138,35 @@
       overflow:auto;
       -webkit-overflow-scrolling: touch;
     }
-    #poiTable{
-      width:100%;
-      border-collapse:collapse;
-      font-size:12px;
-      color:rgba(255,247,214,.92);
+    #poiGrid{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:6px 10px;
+      padding:10px 12px;
     }
-    #poiTable th, #poiTable td{
+    .poiItem{
       padding:8px 10px;
-      border-bottom:1px solid rgba(255,247,214,.08);
-      text-align:left;
+      border-radius:12px;
+      border:1px solid rgba(255,247,214,.10);
+      background:rgba(11,15,20,.55);
+      color:rgba(255,247,214,.92);
+      font-size:12px;
+      line-height:1.2;
       white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
-    #poiTable th{
-      position:sticky;
-      top:0;
-      background:rgba(11,15,20,.80);
-      font-weight:900;
-      font-size:11px;
-      opacity:.9;
-    }
-    #poiTable td:nth-child(2),
-    #poiTable td:nth-child(3){
+    .poiItem .c{
+      opacity:.78;
       font-variant-numeric: tabular-nums;
-      opacity:.92;
     }
     #poiEmpty{
       padding:10px 12px;
       font-size:12px;
       color:rgba(255,247,214,.75);
+    }
+    @media (max-width: 768px){
+      #poi{ display:none; }
     }
     .fps{position:fixed;font-size:28px;font-weight:900;pointer-events:none;z-index:999;animation:fup 1s ease-out forwards}
     .fps.g{color:var(--cheese);text-shadow:0 0 14px rgba(245,158,11,.35)}
@@ -212,16 +212,7 @@
     </div>
     <div id="poiBody">
       <div id="poiEmpty">Пока нет объектов…</div>
-      <table id="poiTable" style="display:none;">
-        <thead>
-          <tr>
-            <th>Объект</th>
-            <th>Lat</th>
-            <th>Lon</th>
-          </tr>
-        </thead>
-        <tbody id="poiTbody"></tbody>
-      </table>
+      <div id="poiGrid" style="display:none;"></div>
     </div>
   </div>
 </div>
@@ -256,8 +247,7 @@ var sceneEl = document.querySelector('a-scene');
 
 var poiCountEl = document.getElementById('poiCount');
 var poiEmptyEl = document.getElementById('poiEmpty');
-var poiTableEl = document.getElementById('poiTable');
-var poiTbodyEl = document.getElementById('poiTbody');
+var poiGridEl = document.getElementById('poiGrid');
 
 var collected = 0;
 var timeLeft  = 30;
@@ -288,22 +278,21 @@ var DEFAULT_LAT = 55.7539, DEFAULT_LON = 37.6208;
 
 var spawnedPOI = [];
 function upPoiUI(){
-  if (!poiCountEl || !poiEmptyEl || !poiTableEl || !poiTbodyEl) return;
+  if (!poiCountEl || !poiEmptyEl || !poiGridEl) return;
   poiCountEl.textContent = String(spawnedPOI.length);
   if (spawnedPOI.length === 0){
     poiEmptyEl.style.display = 'block';
-    poiTableEl.style.display = 'none';
-    poiTbodyEl.innerHTML = '';
+    poiGridEl.style.display = 'none';
+    poiGridEl.innerHTML = '';
     return;
   }
   poiEmptyEl.style.display = 'none';
-  poiTableEl.style.display = 'table';
-  poiTbodyEl.innerHTML = spawnedPOI.map(function(p){
-    return '<tr>' +
-      '<td>' + p.title + '</td>' +
-      '<td>' + p.lat.toFixed(5) + '</td>' +
-      '<td>' + p.lon.toFixed(5) + '</td>' +
-    '</tr>';
+  poiGridEl.style.display = 'grid';
+  poiGridEl.innerHTML = spawnedPOI.map(function(p){
+    return '<div class="poiItem" title="' + p.title + ' (' + p.lat.toFixed(5) + ', ' + p.lon.toFixed(5) + ')">' +
+      '<span class="n">' + p.title + '</span> ' +
+      '<span class="c">(' + p.lat.toFixed(5) + ', ' + p.lon.toFixed(5) + ')</span>' +
+    '</div>';
   }).join('');
 }
 function addPOI(id, title, lat, lon){
