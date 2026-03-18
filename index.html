@@ -408,7 +408,7 @@ function rndOffset(){
   }
   // Выбираем радиус в метрах и переводим в Δlat/Δlon.
   // Для lon учитываем cos(latitude), чтобы метры были ближе к реальности.
-  var rMeters = isMobile ? (3 + Math.random() * 4) : (12 + Math.random() * 12);
+  var rMeters = isMobile ? (8 + Math.random() * 10) : (12 + Math.random() * 12);
   var north = Math.cos(spawnAngle) * rMeters;
   var east  = Math.sin(spawnAngle) * rMeters;
   var dLat = north / 111111;
@@ -428,7 +428,9 @@ function spawnIngredient(isBad){
   el.setAttribute('data-poi-id', poiId);
   el.setAttribute('position', isMobile ? '0 1 0' : '0 2 0');
   el.setAttribute('class', 'clickable');
-  el.setAttribute('scale', isMobile ? '4 4 4' : '0.65 0.65 0.65');
+  el.setAttribute('scale', isMobile ? '1.2 1.2 1.2' : '0.65 0.65 0.65');
+  // Ставим GPS-компонент ДО добавления в сцену (на iOS так надёжнее)
+  el.setAttribute('gps-entity-place', 'latitude: '+lat+'; longitude: '+lon+';');
 
   var pool = isBad ? BAD_MODELS : GOOD_MODELS;
   var modelId = pool[Math.floor(Math.random() * pool.length)];
@@ -441,7 +443,7 @@ function spawnIngredient(isBad){
   // Фолбэк для мобилки/ iOS Safari: если glb не отрисуется, всё равно будет виден примитив
   if (isMobile) {
     var sphere = document.createElement('a-sphere');
-    sphere.setAttribute('radius', '0.6');
+    sphere.setAttribute('radius', '0.18');
     sphere.setAttribute('material', 'color: ' + (isBad ? '#e11d48' : '#16a34a') + '; emissive: ' + (isBad ? '#7f1024' : '#0b5f2c'));
     sphere.setAttribute('animation__spin', 'property: rotation; to: 0 360 0; dur: 3500; loop: true; easing: linear');
     el.appendChild(sphere);
@@ -472,7 +474,6 @@ function spawnIngredient(isBad){
   });
 
   sceneEl.appendChild(el);
-  el.setAttribute('gps-entity-place', 'latitude: '+lat+'; longitude: '+lon+';');
   function updatePlace(){
     if (!el.parentNode) return;
     var comp = el.components['gps-entity-place'];
@@ -589,6 +590,14 @@ function useFallback(){
 
 window.addEventListener('gps-camera-update-position', function(e){
   setCoords(e.detail.position.latitude, e.detail.position.longitude, false);
+  // На iOS иногда позиции "догоняются" только после обновления камеры
+  try{
+    var list = sceneEl.querySelectorAll('a-entity[gps-entity-place]');
+    for (var i=0;i<list.length;i++){
+      var c = list[i].components && list[i].components['gps-entity-place'];
+      if (c && c._updatePosition) c._updatePosition();
+    }
+  }catch(err){}
 });
 
 function showStartButton(){
