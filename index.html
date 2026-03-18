@@ -345,7 +345,7 @@ function finishGame(win, reason){
 var spawnAngle = 0;
 function rndOffset(){
   spawnAngle += 1.2 + Math.random() * 0.8;
-  var dist = isMobile ? (20 + Math.random() * 1.2) / 111000 : (8 + Math.random() * 5) / 111000;
+  var dist = isMobile ? (20 + Math.random() * 1.2) / 111000 : (6 + Math.random() * 5) / 111000;
   return { lat: Math.cos(spawnAngle)*dist, lon: Math.sin(spawnAngle)*dist };
 }
 
