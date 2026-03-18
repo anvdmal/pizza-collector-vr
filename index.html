@@ -602,7 +602,22 @@ if (btnStartGame){
   btnStartGame.addEventListener('click', function(){
     if (!gameStarted && userLat != null && userLon != null) {
       gpsWait.style.display = 'none';
-      startGame();
+      // iPhone Safari: если камера не запросилась сама, принудительно триггерим permission
+      // через user gesture, затем пробуем перезапустить источник AR.js.
+      (async function(){
+        try{
+          if (isIOS && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+            var s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+            // сразу отпускаем камеру, чтобы AR.js мог открыть свой поток
+            try { s.getTracks().forEach(function(t){ t.stop(); }); } catch(e) {}
+          }
+        } catch(e) {}
+        try{
+          var sys = sceneEl && sceneEl.systems && (sceneEl.systems.arjs || sceneEl.systems['arjs']);
+          if (sys && sys.arSource && typeof sys.arSource.start === 'function') sys.arSource.start();
+        }catch(e){}
+        startGame();
+      })();
     }
   });
 }
