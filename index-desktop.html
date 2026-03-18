@@ -252,6 +252,7 @@
   </a-assets>
 
   <a-camera id="gps-cam" gps-new-camera="gpsMinDistance: 0" rotation-reader camera="far: 10000"></a-camera>
+  <a-entity id="screen-spawn-root" position="0 0 0"></a-entity>
 </a-scene>
 
 <script>
@@ -375,8 +376,8 @@ function finishGame(win, reason){
   timerInt = null;
   spawnGood = null;
   spawnBad = null;
-  var gpsEntities = sceneEl.querySelectorAll('a-entity[gps-new-entity-place]');
-  for (var i=0;i<gpsEntities.length;i++) gpsEntities[i].remove();
+  var list = (document.getElementById('screen-spawn-root') || sceneEl).querySelectorAll('a-entity.clickable');
+  for (var i=0;i<list.length;i++) list[i].remove();
   clearPOI();
   if (win){
     resultTitle.textContent = 'Пицца готова';
@@ -388,48 +389,32 @@ function finishGame(win, reason){
   resultEl.classList.add('show');
 }
 
-var spawnAngle = 0;
-function getCameraYaw(){
-  try{
-    var camEl = document.getElementById('gps-cam');
-    if (camEl && camEl.object3D && camEl.object3D.rotation && typeof camEl.object3D.rotation.y === 'number') {
-      return camEl.object3D.rotation.y;
-    }
-  }catch(e){}
-  return 0;
-}
-function rndOffset(){
-  // На мобилке спавним в секторе "перед камерой", иначе легко не увидеть.
-  if (isMobile){
-    var yaw = getCameraYaw();              // yaw камеры (рад)
-    var spread = 0.55;                     // ~±31°
-    spawnAngle = (-yaw) + (Math.random()*2 - 1) * spread;
-  } else {
-    spawnAngle += 1.2 + Math.random() * 0.8;
-  }
-  // Выбираем радиус в метрах и переводим в Δlat/Δlon.
-  // Для lon учитываем cos(latitude), чтобы метры были ближе к реальности.
-  var rMeters = isMobile ? (3 + Math.random() * 4) : (12 + Math.random() * 12);
-  var north = Math.cos(spawnAngle) * rMeters;
-  var east  = Math.sin(spawnAngle) * rMeters;
-  var dLat = north / 111111;
-  var latForCos = (userLat != null ? userLat : DEFAULT_LAT) * Math.PI / 180;
-  var dLon = east / (111111 * Math.max(0.2, Math.cos(latForCos)));
-  return { lat: dLat, lon: dLon };
+// DESKTOP: вместо GPS-раскладки "по кругу" показываем объекты перед камерой,
+// чтобы они всегда были в кадре.
+var screenSlots = [
+  [-1.2,  0.7, -3.0], [0,  0.7, -3.0], [1.2,  0.7, -3.0],
+  [-1.2, -0.2, -2.8], [0, -0.2, -2.8], [1.2, -0.2, -2.8],
+  [-1.2, -1.1, -2.6], [0, -1.1, -2.6], [1.2, -1.1, -2.6]
+];
+var screenSlotIdx = 0;
+function nextScreenPos(){
+  var p = screenSlots[screenSlotIdx % screenSlots.length];
+  screenSlotIdx += 1;
+  return { x: p[0], y: p[1], z: p[2] };
 }
 
 function spawnIngredient(isBad){
   if (!userLat || !userLon || gameOver) return;
-  var o = rndOffset();
-  var lat = userLat + o.lat;
-  var lon = userLon + o.lon;
+  var lat = userLat;
+  var lon = userLon;
   var poiId = String(Date.now()) + '-' + Math.floor(Math.random()*1e9);
 
   var el = document.createElement('a-entity');
   el.setAttribute('data-poi-id', poiId);
-  el.setAttribute('position', isMobile ? '0 1 0' : '0 2 0');
+  var p = nextScreenPos();
+  el.setAttribute('position', p.x + ' ' + p.y + ' ' + p.z);
   el.setAttribute('class', 'clickable');
-  el.setAttribute('scale', isMobile ? '4 4 4' : '0.65 0.65 0.65');
+  el.setAttribute('scale', '1.4 1.4 1.4');
 
   var pool = isBad ? BAD_MODELS : GOOD_MODELS;
   var modelId = pool[Math.floor(Math.random() * pool.length)];
@@ -439,15 +424,6 @@ function spawnIngredient(isBad){
   m.setAttribute('gltf-model', modelId);
   m.setAttribute('animation__spin', 'property: rotation; to: 0 360 0; dur: 3500; loop: true; easing: linear');
   el.appendChild(m);
-  // Фолбэк для мобилки/ iOS Safari: если glb не отрисуется, всё равно будет виден примитив
-  if (isMobile) {
-    var sphere = document.createElement('a-sphere');
-    sphere.setAttribute('radius', '0.6');
-    sphere.setAttribute('material', 'color: ' + (isBad ? '#e11d48' : '#16a34a') + '; emissive: ' + (isBad ? '#7f1024' : '#0b5f2c'));
-    sphere.setAttribute('animation__spin', 'property: rotation; to: 0 360 0; dur: 3500; loop: true; easing: linear');
-    el.appendChild(sphere);
-  }
-
   el.setAttribute('look-at', '#gps-cam');
 
   var handled = false;
@@ -472,29 +448,9 @@ function spawnIngredient(isBad){
     setTimeout(function(){ removePOI(poiId); if(el.parentNode) el.remove(); }, 280);
   });
 
-  sceneEl.appendChild(el);
-  el.setAttribute('gps-new-entity-place', 'latitude: '+lat+'; longitude: '+lon+';');
-  function updatePlace(){
-    if (!el.parentNode) return;
-    var comp = el.components['gps-new-entity-place'];
-    if (comp && comp._updatePosition) comp._updatePosition();
-  }
-  // На iOS Safari компонент может появляться не сразу после setAttribute
-  el.addEventListener('componentinitialized', function(ev){
-    if (ev && ev.detail && ev.detail.name === 'gps-new-entity-place') updatePlace();
-  });
-  updatePlace();
-  setTimeout(updatePlace, 200);
-  setTimeout(updatePlace, 600);
-  setTimeout(updatePlace, 1500);
-  if (isMobile) {
-    setTimeout(updatePlace, 2500);
-    setTimeout(updatePlace, 4000);
-    setTimeout(updatePlace, 6000);
-  }
-  if (isIOS) {
-    for (var i = 1; i <= 16; i++) setTimeout(updatePlace, 500 * i);
-  }
+  // Кладём в root "перед камерой" — всё всегда в кадре
+  var root = document.getElementById('screen-spawn-root') || sceneEl;
+  root.appendChild(el);
 }
 
 function startGame(){
@@ -543,8 +499,9 @@ document.getElementById('btn-again').addEventListener('click', function(){
   spawnBad = null;
   updateHud();
   infoEl.textContent = 'Статус: игра началась';
-  if (sceneEl){
-    var list = sceneEl.querySelectorAll('a-entity[gps-new-entity-place]');
+  var root = document.getElementById('screen-spawn-root') || sceneEl;
+  if (root){
+    var list = root.querySelectorAll('a-entity.clickable');
     for (var i=0;i<list.length;i++) list[i].remove();
   }
   clearPOI();
