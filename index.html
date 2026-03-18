@@ -391,8 +391,15 @@ function finishGame(win, reason){
 var spawnAngle = 0;
 function rndOffset(){
   spawnAngle += 1.2 + Math.random() * 0.8;
-  var dist = isMobile ? (0.5 + Math.random() * 1.2) / 111000 : (6 + Math.random() * 5) / 111000;
-  return { lat: Math.cos(spawnAngle)*dist, lon: Math.sin(spawnAngle)*dist };
+  // Выбираем радиус в метрах и переводим в Δlat/Δlon.
+  // Для lon учитываем cos(latitude), чтобы метры были ближе к реальности.
+  var rMeters = isMobile ? (3 + Math.random() * 4) : (12 + Math.random() * 12);
+  var north = Math.cos(spawnAngle) * rMeters;
+  var east  = Math.sin(spawnAngle) * rMeters;
+  var dLat = north / 111111;
+  var latForCos = (userLat != null ? userLat : DEFAULT_LAT) * Math.PI / 180;
+  var dLon = east / (111111 * Math.max(0.2, Math.cos(latForCos)));
+  return { lat: dLat, lon: dLon };
 }
 
 function spawnIngredient(isBad){
