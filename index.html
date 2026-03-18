@@ -613,11 +613,26 @@ function startWatchingGeo(){
   document.querySelector('#gps-wait .t').textContent = 'Ищем тебя на карте…';
   dbg();
 
+  // iOS Safari иногда не отдаёт watchPosition сразу.
+  // Пробуем "пингануть" getCurrentPosition, а если долго нет координат — включаем демо.
+  try{
+    navigator.geolocation.getCurrentPosition(
+      function(pos){ setCoords(pos.coords.latitude, pos.coords.longitude, false); },
+      function(){},
+      {enableHighAccuracy: true, timeout: 8000, maximumAge: 0}
+    );
+  }catch(e){}
+
   navigator.geolocation.watchPosition(
     function(pos){ setCoords(pos.coords.latitude, pos.coords.longitude, false); },
     function(){ useFallback(); },
     {enableHighAccuracy: true, timeout: 10000, maximumAge: 0}
   );
+
+  setTimeout(function(){
+    // Если всё ещё нет координат — не зависаем на "ищем тебя"
+    if ((!userLat || !userLon) && !gameStarted) useFallback();
+  }, 15000);
 }
 
 var btnStartGame = document.getElementById('btn-start-game');
