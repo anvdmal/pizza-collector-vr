@@ -399,7 +399,7 @@ function getCameraYaw(){
 }
 function rndOffset(){
   var yaw = getCameraYaw();               
-  var spread = isMobile ? 0.55 : 0.95;    
+  var spread = isMobile ? 0.55 : 1.9;    
   spawnAngle = (-yaw) + (Math.random() * 2 - 1) * spread;
 
   var rMeters = isMobile ? (3 + Math.random() * 4) : (6 + Math.random() * 10);
@@ -420,7 +420,8 @@ function spawnIngredient(isBad){
 
   var el = document.createElement('a-entity');
   el.setAttribute('data-poi-id', poiId);
-  el.setAttribute('position', isMobile ? '0 1 0' : '0 2 0');
+  var yPos = isMobile ? 1 : (1.2 + Math.random() * 2.2);
+  el.setAttribute('position', '0 ' + yPos.toFixed(2) + ' 0');
   el.setAttribute('class', 'clickable');
   el.setAttribute('scale', isMobile ? '4 4 4' : '2.0 2.0 2.0');
 
