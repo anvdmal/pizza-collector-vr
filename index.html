@@ -381,7 +381,10 @@ function finishGame(win, reason){
 var spawnAngle = 0;
 function rndOffset(){
   spawnAngle += 1.2 + Math.random() * 0.8;
-  var dist = isMobile ? (20 + Math.random() * 1.2) / 111000 : (6 + Math.random() * 5) / 111000;
+  // iOS Safari: держим ближе, чтобы точно попадало в поле зрения
+  var dist = isIOS
+    ? (0.15 + Math.random() * 0.35) / 111000
+    : (isMobile ? (0.4 + Math.random() * 1.2) / 111000 : (6 + Math.random() * 5) / 111000);
   return { lat: Math.cos(spawnAngle)*dist, lon: Math.sin(spawnAngle)*dist };
 }
 
@@ -394,7 +397,7 @@ function spawnIngredient(isBad){
 
   var el = document.createElement('a-entity');
   el.setAttribute('data-poi-id', poiId);
-  el.setAttribute('position', '0 2 0');
+  el.setAttribute('position', isIOS ? '0 1 0' : '0 2 0');
   el.setAttribute('class', 'clickable');
   el.setAttribute('scale', isMobile ? '1.2 1.2 1.2' : '0.65 0.65 0.65');
 
@@ -473,9 +476,21 @@ function startGame(){
   timeLeft  = 30;
   updateHud();
 
+  // Подстроим стартовый угол под текущий yaw камеры,
+  // чтобы первые объекты чаще попадали "вперёд" на iOS.
+  try {
+    var camEl = document.getElementById('gps-cam');
+    if (camEl && camEl.object3D && camEl.object3D.rotation && typeof camEl.object3D.rotation.y === 'number') {
+      spawnAngle = -camEl.object3D.rotation.y;
+    }
+  } catch (e) {}
+
   function startSpawning(){
     if (gameOver) return;
+    // Сразу несколько — чтобы хотя бы один был в кадре
     spawnIngredient(false);
+    setTimeout(function(){ if(!gameOver) spawnIngredient(false); }, 250);
+    setTimeout(function(){ if(!gameOver) spawnIngredient(false); }, 500);
     spawnGood = setInterval(function(){ if (!gameOver) spawnIngredient(false); }, 1500);
     spawnBad = setInterval(function(){ if (!gameOver) spawnIngredient(true); }, 3500);
   }
