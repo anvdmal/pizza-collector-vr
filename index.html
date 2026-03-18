@@ -190,10 +190,8 @@
 
 <div id="gps-wait">
   <div class="t">Нужна геолокация</div>
-  <div class="s">Нажми кнопку — запросится доступ к местоположению. Камеру запросит сцена при Старте. Когда будет готово — появится кнопка Старт.</div>
   <button type="button" id="btn-request-geo" class="geo-btn">Разрешить геолокацию</button>
   <div id="ready-block" style="display:none;">
-    <div class="s">Нажми Старт — запросится камера и начнётся игра.</div>
     <button type="button" id="btn-start-game" class="geo-btn start-btn">Старт</button>
   </div>
 </div>
@@ -512,16 +510,13 @@ function showStartButton(){
   if (readyBlock){ readyBlock.style.display = 'block'; }
   if (btnGeo){ btnGeo.style.display = 'none'; }
   document.querySelector('#gps-wait .t').textContent = 'Готово к старту';
-  var s = document.querySelector('#gps-wait > .s');
-  if (s) s.textContent = '';
 }
 
 function startWatchingGeo(){
   if (!navigator.geolocation){ useFallback(); return; }
   var btn = document.getElementById('btn-request-geo');
   if (btn) btn.style.display = 'none';
-  document.querySelector('#gps-wait .t').textContent = '';
-  document.querySelector('#gps-wait .s').textContent = '';
+  document.querySelector('#gps-wait .t').textContent = 'Ищем тебя на карте…';
 
   navigator.geolocation.watchPosition(
     function(pos){ setCoords(pos.coords.latitude, pos.coords.longitude, false); },
