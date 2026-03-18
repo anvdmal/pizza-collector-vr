@@ -300,6 +300,8 @@ var debugOn = true;
 var assetLoad = { ok: 0, err: 0, total: 6 };
 var spawnCount = 0;
 var lastSpawnAt = 0;
+var goodTicks = 0;
+var badTicks = 0;
 function dbg(){
   if (!debugOn || !dbgEl) return;
   dbgEl.style.display = 'block';
@@ -310,6 +312,7 @@ function dbg(){
   lines.push('gameStarted: ' + (gameStarted ? 'true' : 'false') + ', gameOver: ' + (gameOver ? 'true' : 'false'));
   lines.push('spawnedPOI: ' + spawnedPOI.length);
   lines.push('spawnInt: good=' + (spawnGood ? 'on' : 'off') + ', bad=' + (spawnBad ? 'on' : 'off'));
+  lines.push('ticks: good=' + goodTicks + ', bad=' + badTicks);
   lines.push('spawnCount: ' + spawnCount + (lastSpawnAt ? (', last=' + Math.round((Date.now()-lastSpawnAt)/100)/10 + 's') : ''));
   lines.push('assets glb: ' + assetLoad.ok + '/' + assetLoad.total + ' ok, ' + assetLoad.err + ' err');
   if (isMobile && spawnedPOI && spawnedPOI.length){
@@ -402,16 +405,13 @@ function getCameraYaw(){
   return 0;
 }
 function rndOffset(){
-  // На мобилке спавним в секторе "перед камерой", иначе легко не увидеть.
   if (isMobile){
-    var yaw = getCameraYaw();              // yaw камеры (рад)
-    var spread = 0.55;                     // ~±31°
+    var yaw = getCameraYaw();              
+    var spread = 0.55;                     
     spawnAngle = (-yaw) + (Math.random()*2 - 1) * spread;
   } else {
     spawnAngle += 1.2 + Math.random() * 0.8;
   }
-  // Выбираем радиус в метрах и переводим в Δlat/Δlon.
-  // Для lon учитываем cos(latitude), чтобы метры были ближе к реальности.
   var rMeters = isMobile ? (15 + Math.random() * 10) : (12 + Math.random() * 12);
   var north = Math.cos(spawnAngle) * rMeters;
   var east  = Math.sin(spawnAngle) * rMeters;
@@ -434,8 +434,6 @@ function spawnIngredient(isBad){
   el.setAttribute('data-poi-id', poiId);
   el.setAttribute('position', isMobile ? '0 1 0' : '0 2 0');
   el.setAttribute('class', 'clickable');
-  // Родителя держим около 1, чтобы размер примитива был стабильный,
-  // а модель масштабируем отдельно (см. m.setAttribute('scale', ...)).
   el.setAttribute('scale', isMobile ? '1 1 1' : '0.65 0.65 0.65');
 
   var pool = isBad ? BAD_MODELS : GOOD_MODELS;
@@ -444,11 +442,9 @@ function spawnIngredient(isBad){
 
   var m = document.createElement('a-entity');
   m.setAttribute('gltf-model', modelId);
-  // На мобилке GLB часто огромные по своим единицам — отдельно уменьшаем только модель
   m.setAttribute('scale', isMobile ? '0.05 0.05 0.05' : '1 1 1');
   m.setAttribute('animation__spin', 'property: rotation; to: 0 360 0; dur: 3500; loop: true; easing: linear');
   el.appendChild(m);
-  // Фолбэк для мобилки/ iOS Safari: если glb не отрисуется, всё равно будет виден примитив
   if (isMobile) {
     var sphere = document.createElement('a-sphere');
     sphere.setAttribute('radius', '0.12');
@@ -482,7 +478,6 @@ function spawnIngredient(isBad){
   });
 
   sceneEl.appendChild(el);
-  // Classic AR.js GPS: ставим компонент ПОСЛЕ appendChild (как в рабочем coffee ar-gps.html)
   el.setAttribute('gps-entity-place', 'latitude: '+lat+'; longitude: '+lon+';');
   function updatePlace(){
     if (!el.parentNode) return;
@@ -511,14 +506,22 @@ function startGame(){
   collected = 0;
   timeLeft  = 30;
   updateHud();
+  dbg();
 
   function startSpawning(){
     if (gameOver) return;
     spawnIngredient(false);
-    spawnGood = setInterval(function(){ if (!gameOver) spawnIngredient(false); }, 1500);
-    spawnBad = setInterval(function(){ if (!gameOver) spawnIngredient(true); }, 3500);
+    spawnGood = setInterval(function(){
+      goodTicks += 1;
+      if (!gameOver) spawnIngredient(false);
+      dbg();
+    }, 1500);
+    spawnBad = setInterval(function(){
+      badTicks += 1;
+      if (!gameOver) spawnIngredient(true);
+      dbg();
+    }, 3500);
   }
-  // Без большой задержки: первый объект должен появляться сразу после "Старт"
   if (isMobile) setTimeout(startSpawning, 800);
   else startSpawning();
 
@@ -571,7 +574,6 @@ window.addEventListener('arjs-source-ready', function(){
   dbg();
 });
 
-// Лог загрузки glb ассетов (особенно важно для iOS Safari)
 window.addEventListener('load', function(){
   var ids = ['cheeseModel','pizzaBoxModel','tomatoModel','garlicModel','cabbageModel','pumpkinModel'];
   assetLoad.total = ids.length;
@@ -596,7 +598,6 @@ function useFallback(){
 
 window.addEventListener('gps-camera-update-position', function(e){
   setCoords(e.detail.position.latitude, e.detail.position.longitude, false);
-  // На iOS иногда позиции "догоняются" только после обновления камеры
   try{
     var list = sceneEl.querySelectorAll('a-entity[gps-entity-place]');
     for (var i=0;i<list.length;i++){
