@@ -303,12 +303,19 @@ function dbg(){
   if (!debugOn || !dbgEl) return;
   dbgEl.style.display = 'block';
   var lines = [];
-  lines.push('DEBUG (iOS Safari)');
+  lines.push('DEBUG');
   lines.push('GPS: ' + (userLat != null ? (userLat.toFixed(5)+', '+userLon.toFixed(5)) : 'нет'));
   lines.push('cameraReady: ' + (cameraReady ? 'true' : 'false'));
   lines.push('gameStarted: ' + (gameStarted ? 'true' : 'false') + ', gameOver: ' + (gameOver ? 'true' : 'false'));
   lines.push('spawnedPOI: ' + spawnedPOI.length);
   lines.push('assets glb: ' + assetLoad.ok + '/' + assetLoad.total + ' ok, ' + assetLoad.err + ' err');
+  if (isMobile && spawnedPOI && spawnedPOI.length){
+    lines.push('first5:');
+    for (var i = 0; i < Math.min(5, spawnedPOI.length); i++){
+      var p = spawnedPOI[i];
+      lines.push((i+1) + ') ' + p.title + ' (' + p.lat.toFixed(5) + ', ' + p.lon.toFixed(5) + ')');
+    }
+  }
   dbgEl.textContent = lines.join('\n');
 }
 
