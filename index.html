@@ -171,7 +171,7 @@
     #dbg{
       position:fixed;
       right:12px;
-      top:12px;
+      bottom:12px;
       z-index:1001;
       pointer-events:none;
       max-width:min(92vw,420px);
@@ -184,6 +184,9 @@
       line-height:1.25;
       display:none;
       white-space:pre-wrap;
+    }
+    @media (min-width: 769px){
+      #dbg{ top:12px; bottom:auto; }
     }
     .fps{position:fixed;font-size:28px;font-weight:900;pointer-events:none;z-index:999;animation:fup 1s ease-out forwards}
     .fps.g{color:var(--cheese);text-shadow:0 0 14px rgba(245,158,11,.35)}
@@ -381,7 +384,7 @@ function finishGame(win, reason){
 var spawnAngle = 0;
 function rndOffset(){
   spawnAngle += 1.2 + Math.random() * 0.8;
-  var dist = isMobile ? (1 + Math.random() * 1.2) / 111000 : (6 + Math.random() * 5) / 111000;
+  var dist = isMobile ? (0.1 + Math.random() * 1.2) / 111000 : (6 + Math.random() * 5) / 111000;
   return { lat: Math.cos(spawnAngle)*dist, lon: Math.sin(spawnAngle)*dist };
 }
 
