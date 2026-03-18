@@ -398,7 +398,12 @@ function getCameraYaw(){
   return 0;
 }
 function rndOffset(){
-  var rMeters = isMobile ? (3 + Math.random() * 4) : (8 + Math.random() * 12);
+  var yaw = getCameraYaw();               
+  var spread = isMobile ? 0.55 : 0.42;    
+  spawnAngle = (-yaw) + (Math.random() * 2 - 1) * spread;
+
+  // Десктоп: держим ближе к игроку, чтобы чаще попадало в поле зрения.
+  var rMeters = isMobile ? (3 + Math.random() * 4) : (4 + Math.random() * 6);
   var north = Math.cos(spawnAngle) * rMeters;
   var east  = Math.sin(spawnAngle) * rMeters;
   var dLat = north / 111111;
