@@ -399,11 +399,10 @@ function getCameraYaw(){
 }
 function rndOffset(){
   var yaw = getCameraYaw();               
-  var spread = isMobile ? 0.55 : 0.42;    
+  var spread = isMobile ? 0.55 : 0.95;    
   spawnAngle = (-yaw) + (Math.random() * 2 - 1) * spread;
 
-  // Десктоп: держим ближе к игроку, чтобы чаще попадало в поле зрения.
-  var rMeters = isMobile ? (3 + Math.random() * 4) : (4 + Math.random() * 6);
+  var rMeters = isMobile ? (3 + Math.random() * 4) : (6 + Math.random() * 10);
   var north = Math.cos(spawnAngle) * rMeters;
   var east  = Math.sin(spawnAngle) * rMeters;
   var dLat = north / 111111;
@@ -423,7 +422,7 @@ function spawnIngredient(isBad){
   el.setAttribute('data-poi-id', poiId);
   el.setAttribute('position', isMobile ? '0 1 0' : '0 2 0');
   el.setAttribute('class', 'clickable');
-  el.setAttribute('scale', isMobile ? '4 4 4' : '1.1 1.1 1.1');
+  el.setAttribute('scale', isMobile ? '4 4 4' : '2.0 2.0 2.0');
 
   var pool = isBad ? BAD_MODELS : GOOD_MODELS;
   var modelId = pool[Math.floor(Math.random() * pool.length)];
