@@ -243,25 +243,15 @@
   loading-screen="enabled: false">
 
   <a-assets timeout="15000">
-    <!-- <a-asset-item id="cheeseModel"  src="pizza%20models/cheese.glb"></a-asset-item>
+    <a-asset-item id="cheeseModel"  src="pizza%20models/cheese.glb"></a-asset-item>
     <a-asset-item id="pizzaBoxModel" src="pizza%20models/pizza%20box.glb"></a-asset-item>
     <a-asset-item id="tomatoModel"  src="pizza%20models/tomato.glb"></a-asset-item>
     <a-asset-item id="garlicModel"  src="pizza%20models/garlic.glb"></a-asset-item>
     <a-asset-item id="cabbageModel" src="pizza%20models/cabbage.glb"></a-asset-item>
-    <a-asset-item id="pumpkinModel" src="pizza%20models/pumpkin.glb"></a-asset-item> -->
-
-    <a-asset-item id="cheeseModel"  src="assets/cheese.glb"></a-asset-item>
-    <a-asset-item id="pizzaBoxModel" src="assets/pizza%20box.glb"></a-asset-item>
-    <a-asset-item id="tomatoModel"  src="assets/tomato.glb"></a-asset-item>
-    <!-- keep id="garlicModel" for game logic, but file is onion.glb -->
-    <a-asset-item id="garlicModel"  src="assets/onion.glb"></a-asset-item>
-    <!-- no cabbage.glb in assets right now, keep old one -->
-    <a-asset-item id="cabbageModel" src="pizza%20models/cabbage.glb"></a-asset-item>
-    <a-asset-item id="pumpkinModel" src="assets/pumpkin.glb"></a-asset-item>
+    <a-asset-item id="pumpkinModel" src="pizza%20models/pumpkin.glb"></a-asset-item>
   </a-assets>
 
   <a-camera id="gps-cam" gps-new-camera="gpsMinDistance: 0" rotation-reader camera="far: 10000"></a-camera>
-  <a-entity id="screen-spawn-root" position="0 0 0"></a-entity>
 </a-scene>
 
 <script>
@@ -385,8 +375,8 @@ function finishGame(win, reason){
   timerInt = null;
   spawnGood = null;
   spawnBad = null;
-  var list = (document.getElementById('screen-spawn-root') || sceneEl).querySelectorAll('a-entity.clickable');
-  for (var i=0;i<list.length;i++) list[i].remove();
+  var gpsEntities = sceneEl.querySelectorAll('a-entity[gps-new-entity-place]');
+  for (var i=0;i<gpsEntities.length;i++) gpsEntities[i].remove();
   clearPOI();
   if (win){
     resultTitle.textContent = 'Пицца готова';
@@ -398,32 +388,48 @@ function finishGame(win, reason){
   resultEl.classList.add('show');
 }
 
-// DESKTOP: вместо GPS-раскладки "по кругу" показываем объекты перед камерой,
-// чтобы они всегда были в кадре.
-var screenSlots = [
-  [-1.2,  0.7, -3.0], [0,  0.7, -3.0], [1.2,  0.7, -3.0],
-  [-1.2, -0.2, -2.8], [0, -0.2, -2.8], [1.2, -0.2, -2.8],
-  [-1.2, -1.1, -2.6], [0, -1.1, -2.6], [1.2, -1.1, -2.6]
-];
-var screenSlotIdx = 0;
-function nextScreenPos(){
-  var p = screenSlots[screenSlotIdx % screenSlots.length];
-  screenSlotIdx += 1;
-  return { x: p[0], y: p[1], z: p[2] };
+var spawnAngle = 0;
+function getCameraYaw(){
+  try{
+    var camEl = document.getElementById('gps-cam');
+    if (camEl && camEl.object3D && camEl.object3D.rotation && typeof camEl.object3D.rotation.y === 'number') {
+      return camEl.object3D.rotation.y;
+    }
+  }catch(e){}
+  return 0;
+}
+function rndOffset(){
+  // На мобилке спавним в секторе "перед камерой", иначе легко не увидеть.
+  if (isMobile){
+    var yaw = getCameraYaw();              // yaw камеры (рад)
+    var spread = 0.55;                     // ~±31°
+    spawnAngle = (-yaw) + (Math.random()*2 - 1) * spread;
+  } else {
+    spawnAngle += 1.2 + Math.random() * 0.8;
+  }
+  // Выбираем радиус в метрах и переводим в Δlat/Δlon.
+  // Для lon учитываем cos(latitude), чтобы метры были ближе к реальности.
+  var rMeters = isMobile ? (3 + Math.random() * 4) : (12 + Math.random() * 12);
+  var north = Math.cos(spawnAngle) * rMeters;
+  var east  = Math.sin(spawnAngle) * rMeters;
+  var dLat = north / 111111;
+  var latForCos = (userLat != null ? userLat : DEFAULT_LAT) * Math.PI / 180;
+  var dLon = east / (111111 * Math.max(0.2, Math.cos(latForCos)));
+  return { lat: dLat, lon: dLon };
 }
 
 function spawnIngredient(isBad){
   if (!userLat || !userLon || gameOver) return;
-  var lat = userLat;
-  var lon = userLon;
+  var o = rndOffset();
+  var lat = userLat + o.lat;
+  var lon = userLon + o.lon;
   var poiId = String(Date.now()) + '-' + Math.floor(Math.random()*1e9);
 
   var el = document.createElement('a-entity');
   el.setAttribute('data-poi-id', poiId);
-  var p = nextScreenPos();
-  el.setAttribute('position', p.x + ' ' + p.y + ' ' + p.z);
+  el.setAttribute('position', isMobile ? '0 1 0' : '0 2 0');
   el.setAttribute('class', 'clickable');
-  el.setAttribute('scale', '1.4 1.4 1.4');
+  el.setAttribute('scale', isMobile ? '4 4 4' : '0.65 0.65 0.65');
 
   var pool = isBad ? BAD_MODELS : GOOD_MODELS;
   var modelId = pool[Math.floor(Math.random() * pool.length)];
@@ -433,6 +439,15 @@ function spawnIngredient(isBad){
   m.setAttribute('gltf-model', modelId);
   m.setAttribute('animation__spin', 'property: rotation; to: 0 360 0; dur: 3500; loop: true; easing: linear');
   el.appendChild(m);
+  // Фолбэк для мобилки/ iOS Safari: если glb не отрисуется, всё равно будет виден примитив
+  if (isMobile) {
+    var sphere = document.createElement('a-sphere');
+    sphere.setAttribute('radius', '0.6');
+    sphere.setAttribute('material', 'color: ' + (isBad ? '#e11d48' : '#16a34a') + '; emissive: ' + (isBad ? '#7f1024' : '#0b5f2c'));
+    sphere.setAttribute('animation__spin', 'property: rotation; to: 0 360 0; dur: 3500; loop: true; easing: linear');
+    el.appendChild(sphere);
+  }
+
   el.setAttribute('look-at', '#gps-cam');
 
   var handled = false;
@@ -457,9 +472,29 @@ function spawnIngredient(isBad){
     setTimeout(function(){ removePOI(poiId); if(el.parentNode) el.remove(); }, 280);
   });
 
-  // Кладём в root "перед камерой" — всё всегда в кадре
-  var root = document.getElementById('screen-spawn-root') || sceneEl;
-  root.appendChild(el);
+  sceneEl.appendChild(el);
+  el.setAttribute('gps-new-entity-place', 'latitude: '+lat+'; longitude: '+lon+';');
+  function updatePlace(){
+    if (!el.parentNode) return;
+    var comp = el.components['gps-new-entity-place'];
+    if (comp && comp._updatePosition) comp._updatePosition();
+  }
+  // На iOS Safari компонент может появляться не сразу после setAttribute
+  el.addEventListener('componentinitialized', function(ev){
+    if (ev && ev.detail && ev.detail.name === 'gps-new-entity-place') updatePlace();
+  });
+  updatePlace();
+  setTimeout(updatePlace, 200);
+  setTimeout(updatePlace, 600);
+  setTimeout(updatePlace, 1500);
+  if (isMobile) {
+    setTimeout(updatePlace, 2500);
+    setTimeout(updatePlace, 4000);
+    setTimeout(updatePlace, 6000);
+  }
+  if (isIOS) {
+    for (var i = 1; i <= 16; i++) setTimeout(updatePlace, 500 * i);
+  }
 }
 
 function startGame(){
@@ -508,9 +543,8 @@ document.getElementById('btn-again').addEventListener('click', function(){
   spawnBad = null;
   updateHud();
   infoEl.textContent = 'Статус: игра началась';
-  var root = document.getElementById('screen-spawn-root') || sceneEl;
-  if (root){
-    var list = root.querySelectorAll('a-entity.clickable');
+  if (sceneEl){
+    var list = sceneEl.querySelectorAll('a-entity[gps-new-entity-place]');
     for (var i=0;i<list.length;i++) list[i].remove();
   }
   clearPOI();
