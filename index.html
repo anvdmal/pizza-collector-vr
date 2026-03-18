@@ -103,6 +103,71 @@
       background:linear-gradient(90deg, rgba(22,163,74,.22), rgba(245,158,11,.24), rgba(225,29,72,.22));
       border:1px solid rgba(255,247,214,.26);color:#fff
     }
+    #poi{
+      position:fixed;
+      left:12px;
+      right:12px;
+      bottom:12px;
+      z-index:999;
+      pointer-events:none;
+    }
+    #poiCard{
+      pointer-events:none;
+      border-radius:14px;
+      overflow:hidden;
+      background:rgba(11,15,20,.68);
+      border:1px solid rgba(255,247,214,.18);
+      box-shadow:0 14px 42px rgba(0,0,0,.45);
+      backdrop-filter: blur(10px);
+    }
+    #poiHead{
+      display:flex;
+      align-items:baseline;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px 12px;
+      color:rgba(255,247,214,.92);
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.2px;
+      border-bottom:1px solid rgba(255,247,214,.10);
+      background:linear-gradient(180deg, rgba(245,158,11,.10), rgba(225,29,72,.06));
+    }
+    #poiBody{
+      max-height: 26vh;
+      overflow:auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    #poiTable{
+      width:100%;
+      border-collapse:collapse;
+      font-size:12px;
+      color:rgba(255,247,214,.92);
+    }
+    #poiTable th, #poiTable td{
+      padding:8px 10px;
+      border-bottom:1px solid rgba(255,247,214,.08);
+      text-align:left;
+      white-space:nowrap;
+    }
+    #poiTable th{
+      position:sticky;
+      top:0;
+      background:rgba(11,15,20,.80);
+      font-weight:900;
+      font-size:11px;
+      opacity:.9;
+    }
+    #poiTable td:nth-child(2),
+    #poiTable td:nth-child(3){
+      font-variant-numeric: tabular-nums;
+      opacity:.92;
+    }
+    #poiEmpty{
+      padding:10px 12px;
+      font-size:12px;
+      color:rgba(255,247,214,.75);
+    }
     .fps{position:fixed;font-size:28px;font-weight:900;pointer-events:none;z-index:999;animation:fup 1s ease-out forwards}
     .fps.g{color:var(--cheese);text-shadow:0 0 14px rgba(245,158,11,.35)}
     .fps.b{color:#ff4444}
@@ -139,6 +204,28 @@
   <button class="again" id="btn-again">Ещё раз</button>
 </div>
 
+<div id="poi">
+  <div id="poiCard">
+    <div id="poiHead">
+      <span>Объекты (координаты)</span>
+      <span id="poiCount">0</span>
+    </div>
+    <div id="poiBody">
+      <div id="poiEmpty">Пока нет объектов…</div>
+      <table id="poiTable" style="display:none;">
+        <thead>
+          <tr>
+            <th>Объект</th>
+            <th>Lat</th>
+            <th>Lon</th>
+          </tr>
+        </thead>
+        <tbody id="poiTbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <a-scene
   vr-mode-ui="enabled: false"
   arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false;"
@@ -167,6 +254,11 @@ var resultTitle = document.getElementById('result-title');
 var resultText  = document.getElementById('result-text');
 var sceneEl = document.querySelector('a-scene');
 
+var poiCountEl = document.getElementById('poiCount');
+var poiEmptyEl = document.getElementById('poiEmpty');
+var poiTableEl = document.getElementById('poiTable');
+var poiTbodyEl = document.getElementById('poiTbody');
+
 var collected = 0;
 var timeLeft  = 30;
 var timerInt  = null;
@@ -194,6 +286,41 @@ var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.
 var isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 var DEFAULT_LAT = 55.7539, DEFAULT_LON = 37.6208;
 
+var spawnedPOI = [];
+function upPoiUI(){
+  if (!poiCountEl || !poiEmptyEl || !poiTableEl || !poiTbodyEl) return;
+  poiCountEl.textContent = String(spawnedPOI.length);
+  if (spawnedPOI.length === 0){
+    poiEmptyEl.style.display = 'block';
+    poiTableEl.style.display = 'none';
+    poiTbodyEl.innerHTML = '';
+    return;
+  }
+  poiEmptyEl.style.display = 'none';
+  poiTableEl.style.display = 'table';
+  poiTbodyEl.innerHTML = spawnedPOI.map(function(p){
+    return '<tr>' +
+      '<td>' + p.title + '</td>' +
+      '<td>' + p.lat.toFixed(5) + '</td>' +
+      '<td>' + p.lon.toFixed(5) + '</td>' +
+    '</tr>';
+  }).join('');
+}
+function addPOI(id, title, lat, lon){
+  spawnedPOI.push({ id:id, title:title, lat:lat, lon:lon });
+  upPoiUI();
+}
+function removePOI(id){
+  for (var i = spawnedPOI.length - 1; i >= 0; i--){
+    if (spawnedPOI[i].id === id) spawnedPOI.splice(i,1);
+  }
+  upPoiUI();
+}
+function clearPOI(){
+  spawnedPOI = [];
+  upPoiUI();
+}
+
 var _actx;
 function ac(){ if(!_actx)_actx=new(window.AudioContext||window.webkitAudioContext)(); return _actx; }
 function beep(f,d,v){ try{ var c=ac(),o=c.createOscillator(),g=c.createGain(); o.connect(g);g.connect(c.destination); o.type='sine';o.frequency.value=f; g.gain.setValueAtTime(v||0.3,c.currentTime); g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d); o.start();o.stop(c.currentTime+d);}catch(e){} }
@@ -217,6 +344,7 @@ function finishGame(win, reason){
   spawnBad = null;
   var gpsEntities = sceneEl.querySelectorAll('a-entity[gps-new-entity-place]');
   for (var i=0;i<gpsEntities.length;i++) gpsEntities[i].remove();
+  clearPOI();
   if (win){
     resultTitle.textContent = 'Заказ собран';
     resultText.textContent  = 'Отлично! Все 10 ингредиентов на месте.';
@@ -239,14 +367,17 @@ function spawnIngredient(isBad){
   var o = rndOffset();
   var lat = userLat + o.lat;
   var lon = userLon + o.lon;
+  var poiId = String(Date.now()) + '-' + Math.floor(Math.random()*1e9);
 
   var el = document.createElement('a-entity');
+  el.setAttribute('data-poi-id', poiId);
   el.setAttribute('position', '0 2 0');
   el.setAttribute('class', 'clickable');
   el.setAttribute('scale', isMobile ? '1.2 1.2 1.2' : '0.65 0.65 0.65');
 
   var pool = isBad ? BAD_MODELS : GOOD_MODELS;
   var modelId = pool[Math.floor(Math.random() * pool.length)];
+  addPOI(poiId, (MODEL_TITLES[modelId] || (isBad ? 'опасный' : 'ингредиент')), lat, lon);
 
   var m = document.createElement('a-entity');
   m.setAttribute('gltf-model', modelId);
@@ -281,7 +412,7 @@ function spawnIngredient(isBad){
       }
     }
     el.setAttribute('animation__die','property:scale; to:0 0 0; dur:260; easing:easeInBack');
-    setTimeout(function(){ if(el.parentNode) el.remove(); }, 280);
+    setTimeout(function(){ removePOI(poiId); if(el.parentNode) el.remove(); }, 280);
   });
 
   sceneEl.appendChild(el);
@@ -355,6 +486,7 @@ document.getElementById('btn-again').addEventListener('click', function(){
     var list = sceneEl.querySelectorAll('a-entity[gps-new-entity-place]');
     for (var i=0;i<list.length;i++) list[i].remove();
   }
+  clearPOI();
   startGame();
 });
 
