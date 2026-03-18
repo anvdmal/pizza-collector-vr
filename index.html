@@ -429,8 +429,6 @@ function spawnIngredient(isBad){
   el.setAttribute('position', isMobile ? '0 1 0' : '0 2 0');
   el.setAttribute('class', 'clickable');
   el.setAttribute('scale', isMobile ? '1.2 1.2 1.2' : '0.65 0.65 0.65');
-  // Ставим GPS-компонент ДО добавления в сцену (на iOS так надёжнее)
-  el.setAttribute('gps-entity-place', 'latitude: '+lat+'; longitude: '+lon+';');
 
   var pool = isBad ? BAD_MODELS : GOOD_MODELS;
   var modelId = pool[Math.floor(Math.random() * pool.length)];
@@ -449,7 +447,7 @@ function spawnIngredient(isBad){
     el.appendChild(sphere);
   }
 
-  el.setAttribute('look-at', '#gps-cam');
+  el.setAttribute('look-at', '[gps-camera]');
 
   var handled = false;
   el.addEventListener('click', function(){
@@ -474,15 +472,13 @@ function spawnIngredient(isBad){
   });
 
   sceneEl.appendChild(el);
+  // Classic AR.js GPS: ставим компонент ПОСЛЕ appendChild (как в рабочем coffee ar-gps.html)
+  el.setAttribute('gps-entity-place', 'latitude: '+lat+'; longitude: '+lon+';');
   function updatePlace(){
     if (!el.parentNode) return;
     var comp = el.components['gps-entity-place'];
     if (comp && comp._updatePosition) comp._updatePosition();
   }
-  // На iOS Safari компонент может появляться не сразу после setAttribute
-  el.addEventListener('componentinitialized', function(ev){
-    if (ev && ev.detail && ev.detail.name === 'gps-entity-place') updatePlace();
-  });
   updatePlace();
   setTimeout(updatePlace, 200);
   setTimeout(updatePlace, 600);
